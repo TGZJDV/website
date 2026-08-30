@@ -2,8 +2,13 @@
 # Cloudflare Workers 配置
 # 使用前请先创建资源并替换占位符：
 #   wrangler d1 create music-db      -> 得到 database_id
-#   wrangler r2 bucket create music-files
 #   wrangler secret put JWT_SECRET   -> 设置 JWT 密钥（推荐用 secret，勿明文）
+# 存储改用 Backblaze B2（S3 兼容，免费 10GB，无需绑卡）：
+#   1. 注册 https://www.backblaze.com，创建 Bucket
+#      - 桶名记为 B2_BUCKET；区域记为 B2_REGION（如 us-west-004）
+#      - 桶类型必须选 Public（公开），否则公开 URL 读取会 403
+#      - 建议在 Bucket 的 CORS 规则里允许 GET（浏览器可直接读音频/封面）
+#   2. 创建 Application Key：KeyID = B2_ACCESS_KEY，ApplicationKey = B2_SECRET_KEY
 # ============================================================
 name = "music-api"
 main = "src/index.ts"
@@ -20,12 +25,7 @@ database_name = "music-db"
 # 本地开发可保留占位符；部署前用 `wrangler d1 create music-db` 获取真实 ID 替换
 database_id = "00000000-0000-0000-0000-000000000000"
 
-# R2 对象存储（音乐文件 / 封面 / 歌词）
-[[r2_buckets]]
-binding = "R2"
-bucket_name = "music-files"
-
-# 开发期使用的密钥；生产环境请用 wrangler secret put JWT_SECRET 覆盖
+# 开发期使用的密钥；生产环境请用 wrangler secret put 覆盖
 [vars]
 JWT_SECRET = "dev-secret-change-me"
 JWT_EXPIRES = "604800"   # 7 天（秒）
@@ -33,3 +33,13 @@ JWT_EXPIRES = "604800"   # 7 天（秒）
 # 未配置时本地开发会把验证码打印到控制台
 RESEND_API_KEY = "dev-no-key"
 EMAIL_FROM = "CloudMusic <onboarding@resend.dev>"
+
+# --- Backblaze B2 存储（替换原 R2）---
+# 生产环境建议用 wrangler secret put 设置以下值：
+#   wrangler secret put B2_ACCESS_KEY
+#   wrangler secret put B2_SECRET_KEY
+#   wrangler secret put B2_BUCKET
+B2_ACCESS_KEY = "replace-me-keyID"
+B2_SECRET_KEY = "replace-me-applicationKey"
+B2_BUCKET = "music-files"
+B2_REGION = "us-west-004"

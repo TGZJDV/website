@@ -28,7 +28,7 @@ export function getExtension(filename: string): string {
   return ext || 'bin';
 }
 
-/** 生成 R2 对象 key */
+/** 生成 B2 对象 key */
 export function makeKey(prefix: string, id: string, ext: string): string {
   return `${prefix}/${id}.${ext}`;
 }

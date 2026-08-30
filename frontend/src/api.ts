@@ -77,7 +77,7 @@ export function avatarUrl(user: { id: number; avatar_key?: string | null }): str
 /** 封面图地址（无封面时返回 null） */
 export function coverUrl(song: Pick<Song, 'cover_key' | 'id'>): string | null {
   if (!song.cover_key) return null;
-  // 前端无法直接读取 R2 私有桶，这里通过 API 代理获取
+  // 通过 API 代理获取封面（Worker 307 重定向到 B2 公开 URL）
   return `${API_URL}/songs/${song.id}/cover`;
 }
 

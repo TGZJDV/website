@@ -1,11 +1,15 @@
 // 全局环境绑定类型
 export type Env = {
   DB: D1Database;
-  R2: R2Bucket;
   JWT_SECRET: string;
   JWT_EXPIRES?: string; // 秒
   RESEND_API_KEY?: string; // 邮件服务（可选，本地开发打印验证码）
   EMAIL_FROM?: string;
+  // Backblaze B2 存储（S3 兼容，替换原 R2）
+  B2_ACCESS_KEY: string; // Application Key ID
+  B2_SECRET_KEY: string; // Application Key
+  B2_BUCKET: string; // 桶名（需 Public）
+  B2_REGION?: string; // 桶区域，如 us-west-004
 };
 
 // 用户

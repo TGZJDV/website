@@ -1,0 +1,213 @@
+// ============================================================
+// Backblaze B2 存储封装（S3 兼容）
+// 替换原 Cloudflare R2 绑定：写入/删除需 AWS Signature V4 签名，
+// 读取走 B2 公开桶 URL（桶需设为 Public，Worker 端 302 重定向或代理）。
+// ============================================================
+import type { Env } from './types';
+
+const encoder = new TextEncoder();
+
+/** Uint8Array -> ArrayBuffer（复制，避免 SharedArrayBuffer 类型问题） */
+function toArrayBuffer(data: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(data.byteLength);
+  copy.set(data);
+  return copy.buffer;
+}
+
+function bufToHex(buf: ArrayBuffer): string {
+  return [...new Uint8Array(buf)]
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+async function sha256Hex(data: ArrayBuffer | string): Promise<string> {
+  const bytes =
+    typeof data === 'string' ? (encoder.encode(data).buffer as ArrayBuffer) : data;
+  const hash = await crypto.subtle.digest('SHA-256', bytes);
+  return bufToHex(hash);
+}
+
+async function hmacSha256(key: ArrayBuffer, data: string): Promise<ArrayBuffer> {
+  const k = await crypto.subtle.importKey(
+    'raw',
+    key,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  return crypto.subtle.sign(
+    'HMAC',
+    k,
+    encoder.encode(data).buffer as ArrayBuffer
+  );
+}
+
+async function getSignatureKey(
+  secret: string,
+  dateStamp: string,
+  region: string,
+  service: string
+): Promise<ArrayBuffer> {
+  const kDate = await hmacSha256(
+    encoder.encode('AWS4' + secret).buffer as ArrayBuffer,
+    dateStamp
+  );
+  const kRegion = await hmacSha256(kDate, region);
+  const kService = await hmacSha256(kRegion, service);
+  return hmacSha256(kService, 'aws4_request');
+}
+
+function amzDateOf(date: Date): string {
+  return date.toISOString().replace(/[:-]|\.\d{3}/g, '');
+}
+
+/**
+ * B2 存储操作。
+ * 依赖 env：
+ *   B2_ACCESS_KEY  - Application Key ID（KeyID）
+ *   B2_SECRET_KEY  - Application Key
+ *   B2_BUCKET      - 桶名（需公开 Public）
+ *   B2_REGION      - 桶所在区域，如 us-west-004（可选，默认 us-west-004）
+ */
+export class B2Storage {
+  private env: Env;
+
+  constructor(env: Env) {
+    this.env = env;
+  }
+
+  private get region(): string {
+    return this.env.B2_REGION || 'us-west-004';
+  }
+
+  /** S3 API 主机（上传/删除用） */
+  private get s3Host(): string {
+    return `s3.${this.region}.backblazeb2.com`;
+  }
+
+  /** 公开读取主机（Public 桶直接可读） */
+  private get publicHost(): string {
+    return `${this.env.B2_BUCKET}.s3.${this.region}.backblazeb2.com`;
+  }
+
+  /** 对象公开 URL（浏览器可直接读取，支持 Range） */
+  publicUrl(key: string): string {
+    return `https://${this.publicHost}/${key}`;
+  }
+
+  /** 生成 S3 签名请求头（AWS Signature V4） */
+  private async signedHeaders(
+    method: string,
+    key: string,
+    headers: Record<string, string>,
+    payloadHash: string,
+    date: Date
+  ): Promise<Record<string, string>> {
+    const amzDate = amzDateOf(date);
+    const dateStamp = amzDate.slice(0, 8);
+
+    // 规范请求
+    const canonicalUri = '/' + key;
+    const canonicalQuery = '';
+    const canonicalHeaders =
+      Object.entries(headers)
+        .map(([k, v]) => `${k.toLowerCase()}:${v.trim()}\n`)
+        .join('');
+    const signedHeadersList = Object.keys(headers)
+      .map((h) => h.toLowerCase())
+      .sort()
+      .join(';');
+    const canonicalRequest = [
+      method,
+      canonicalUri,
+      canonicalQuery,
+      canonicalHeaders,
+      signedHeadersList,
+      payloadHash,
+    ].join('\n');
+
+    const scope = `${dateStamp}/${this.region}/s3/aws4_request`;
+    const stringToSign = [
+      'AWS4-HMAC-SHA256',
+      amzDate,
+      scope,
+      await sha256Hex(canonicalRequest),
+    ].join('\n');
+
+    const signingKey = await getSignatureKey(
+      this.env.B2_SECRET_KEY,
+      dateStamp,
+      this.region,
+      's3'
+    );
+    const signature = bufToHex(await hmacSha256(signingKey, stringToSign));
+
+    return {
+      authorization: `AWS4-HMAC-SHA256 Credential=${this.env.B2_ACCESS_KEY}/${scope}, SignedHeaders=${signedHeadersList}, Signature=${signature}`,
+      'x-amz-date': amzDate,
+      'x-amz-content-sha256': payloadHash,
+    };
+  }
+
+  /** 上传对象（data 为文件字节） */
+  async put(
+    key: string,
+    data: ArrayBuffer | Uint8Array,
+    contentType: string
+  ): Promise<void> {
+    const body =
+      data instanceof ArrayBuffer ? data : toArrayBuffer(data);
+    const payloadHash = await sha256Hex(body);
+    const date = new Date();
+    const headers: Record<string, string> = {
+      host: this.s3Host,
+      'content-type': contentType,
+    };
+    const signed = await this.signedHeaders('PUT', key, headers, payloadHash, date);
+
+    const res = await fetch(`https://${this.s3Host}/${this.env.B2_BUCKET}/${key}`, {
+      method: 'PUT',
+      headers: { ...headers, ...signed },
+      body,
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`B2 上传失败(${res.status}): ${errText}`);
+    }
+  }
+
+  /** 删除对象（404 视为已删除，不报错） */
+  async remove(key: string): Promise<void> {
+    const date = new Date();
+    const payloadHash = await sha256Hex(''); // 空 body
+    const headers: Record<string, string> = {
+      host: this.s3Host,
+      'content-type': 'application/xml',
+    };
+    const signed = await this.signedHeaders('DELETE', key, headers, payloadHash, date);
+
+    const res = await fetch(
+      `https://${this.s3Host}/${this.env.B2_BUCKET}/${key}`,
+      {
+        method: 'DELETE',
+        headers: { ...headers, ...signed },
+      }
+    );
+    if (res.status !== 204 && res.status !== 200 && res.status !== 404) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`B2 删除失败(${res.status}): ${errText}`);
+    }
+  }
+
+  /** 服务器端读取对象文本（如歌词） */
+  async getText(key: string): Promise<string | null> {
+    const res = await fetch(this.publicUrl(key));
+    if (!res.ok) return null;
+    return res.text();
+  }
+}
+
+/** 便捷工厂：从 env 构造 B2 存储 */
+export function b2(env: Env): B2Storage {
+  return new B2Storage(env);
+}

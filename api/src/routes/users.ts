@@ -5,6 +5,7 @@ import { Hono } from 'hono';
 import type { Env, AppVariables } from '../types';
 import { authRequired } from '../auth';
 import { getExtension, makeKey } from '../utils';
+import { b2 } from '../storage';
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -24,15 +25,13 @@ app.post('/avatar', authRequired, async (c) => {
   }
 
   const key = makeKey('avatars', String(user.id), getExtension(avatar.name || 'png'));
-  await c.env.R2.put(key, avatar.stream(), {
-    httpMetadata: { contentType: avatar.type || 'image/png' },
-  });
+  await b2(c.env).put(key, await avatar.arrayBuffer(), avatar.type || 'image/png');
   await c.env.DB.prepare('UPDATE users SET avatar_key = ? WHERE id = ?').bind(key, user.id).run();
 
   return c.json({ success: true, avatar_key: key });
 });
 
-/** 获取头像（R2 私有桶代理） */
+/** 获取头像（B2 公开桶，302 重定向） */
 app.get('/:id/avatar', async (c) => {
   const id = Number(c.req.param('id'));
   const user = await c.env.DB.prepare('SELECT avatar_key FROM users WHERE id = ?').bind(id).first<{
@@ -40,15 +39,7 @@ app.get('/:id/avatar', async (c) => {
   }>();
   if (!user || !user.avatar_key) return c.body(null, 204);
 
-  const obj = await c.env.R2.get(user.avatar_key);
-  if (!obj) return c.body(null, 204);
-
-  const headers = new Headers();
-  obj.writeHttpMetadata(headers);
-  headers.set('Content-Type', obj.httpMetadata?.contentType || 'image/png');
-  // 头像可能变化，禁用强缓存（前端 URL 已带版本参数）
-  headers.set('Cache-Control', 'private, no-cache, max-age=0');
-  return new Response(obj.body, { status: 200, headers });
+  return Response.redirect(b2(c.env).publicUrl(user.avatar_key), 307);
 });
 
 export default app;
