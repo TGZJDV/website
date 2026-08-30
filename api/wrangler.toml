@@ -1,0 +1,35 @@
+# ============================================================
+# Cloudflare Workers 配置
+# 使用前请先创建资源并替换占位符：
+#   wrangler d1 create music-db      -> 得到 database_id
+#   wrangler r2 bucket create music-files
+#   wrangler secret put JWT_SECRET   -> 设置 JWT 密钥（推荐用 secret，勿明文）
+# ============================================================
+name = "music-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# 关闭遥测上报（避免网络阻塞）
+send_metrics = false
+
+# D1 数据库（SQLite）
+[[d1_databases]]
+binding = "DB"
+database_name = "music-db"
+# 本地开发可保留占位符；部署前用 `wrangler d1 create music-db` 获取真实 ID 替换
+database_id = "00000000-0000-0000-0000-000000000000"
+
+# R2 对象存储（音乐文件 / 封面 / 歌词）
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "music-files"
+
+# 开发期使用的密钥；生产环境请用 wrangler secret put JWT_SECRET 覆盖
+[vars]
+JWT_SECRET = "dev-secret-change-me"
+JWT_EXPIRES = "604800"   # 7 天（秒）
+# 邮件服务（Resend）：生产环境用 `wrangler secret put RESEND_API_KEY` 设置
+# 未配置时本地开发会把验证码打印到控制台
+RESEND_API_KEY = "dev-no-key"
+EMAIL_FROM = "CloudMusic <onboarding@resend.dev>"
