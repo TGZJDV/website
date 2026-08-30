@@ -6,8 +6,9 @@
 # 存储改用 Backblaze B2（S3 兼容，免费 10GB，无需绑卡）：
 #   1. 注册 https://www.backblaze.com，创建 Bucket
 #      - 桶名记为 B2_BUCKET；区域记为 B2_REGION（如 us-west-004）
-#      - 桶类型必须选 Public（公开），否则公开 URL 读取会 403
-#      - 建议在 Bucket 的 CORS 规则里允许 GET（浏览器可直接读音频/封面）
+#      - 桶类型选 **Private（私有）** 即可！
+#        Public（公开）桶需要绑定付款方式（1 美元验证费），
+#        而私有桶无需绑卡，读取通过预签名 URL 完成
 #   2. 创建 Application Key：KeyID = B2_ACCESS_KEY，ApplicationKey = B2_SECRET_KEY
 # ============================================================
 name = "music-api"

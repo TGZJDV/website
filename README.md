@@ -26,7 +26,7 @@ website/
 │   └── src/
 │       ├── index.ts      # Hono 入口
 │       ├── auth.ts       # JWT / 密码哈希 / 鉴权中间件
-│       ├── storage.ts    # Backblaze B2 封装（S3 签名上传 / 删除 / 公开 URL）
+│       ├── storage.ts    # Backblaze B2 封装（S3 签名上传 / 删除 / 预签名 URL）
 │       ├── utils.ts      # 工具函数
 │       ├── types.ts      # 环境绑定类型
 │       └── routes/       # auth / songs / playlists / comments
@@ -72,9 +72,9 @@ B2 提供 **10GB 免费额度**、S3 兼容、无需绑定银行卡：
 1. 注册 [Backblaze](https://www.backblaze.com/) 账号（免费）。
 2. 进入 **Buckets** → **Create a Bucket**：
    - 桶名自定（如 `music-files`），记作 `B2_BUCKET`。
-   - **Files in Bucket are: Public**（必须选公开，否则读取 403）。
+   - **Files in Bucket are: Private**（选**私有**即可！）。
+   - ⚠️ 不要选 Public：B2 的**公开桶要求绑定付款方式**（需扣 1 美元验证费）。私有桶无需绑卡，读取通过 Worker 生成的**预签名 URL** 完成。
    - 记下桶所在区域（如 `us-west-004`），即 `B2_REGION`。
-   - 可选：在 Bucket 的 **CORS Rules** 添加允许 `GET` 的规则，方便浏览器直接读取。
 3. 进入 **App Keys** → **Add a New Application Key**：
    - 权限勾选读写、桶范围选刚建的桶。
    - 记下 **keyID**（填 `B2_ACCESS_KEY`）与 **applicationKey**（填 `B2_SECRET_KEY`）。
@@ -187,7 +187,7 @@ npm run build -- --mode production  # 或用环境变量
 - 邮箱验证码有效期 **5 分钟**，使用一次后即失效。
 - 生产环境务必通过 `wrangler secret put` 设置 `JWT_SECRET` 和 `RESEND_API_KEY`。
 - 本地开发未配置 `RESEND_API_KEY` 时，验证码会打印在后端终端。
-- B2 桶为 **Public 公开桶**：音频 / 封面 / 头像通过 Worker **307 重定向**到 B2 公开 URL（支持 Range 流式播放）；歌词由 Worker 代理返回。上传 / 删除通过 S3 签名请求完成。
+- B2 桶为 **Private 私有桶**（无需绑卡，Public 公开桶需付款方式）：音频 / 封面 / 头像通过 Worker **307 重定向**到**预签名 URL**（1 小时有效，支持 Range 流式播放）；歌词由 Worker 用短时预签名 URL 代理返回。上传 / 删除通过 S3 签名请求完成。
 - 如需限制只有特定邮箱可注册，可在 `api/src/routes/auth.ts` 的 register 中自行加白名单。
 
 ## 七、常见问题

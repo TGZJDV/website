@@ -1,7 +1,9 @@
 // ============================================================
 // Backblaze B2 存储封装（S3 兼容）
-// 替换原 Cloudflare R2 绑定：写入/删除需 AWS Signature V4 签名，
-// 读取走 B2 公开桶 URL（桶需设为 Public，Worker 端 302 重定向或代理）。
+// 替换原 Cloudflare R2 绑定：写入/删除/读取均通过 AWS Signature V4 签名。
+// 桶保持 **Private（私有）**：B2 的 Public 公开桶要求绑定付款方式（1 美元验证费），
+// 而私有桶无需绑卡。读取时 Worker 生成**预签名 URL**（query-parameter 签名），
+// 再 307 重定向给浏览器直连 B2（支持 Range 流式播放）。
 // ============================================================
 import type { Env } from './types';
 
@@ -85,14 +87,54 @@ export class B2Storage {
     return `s3.${this.region}.backblazeb2.com`;
   }
 
-  /** 公开读取主机（Public 桶直接可读） */
+  /** 公开读取主机（用于签名与直连 B2） */
   private get publicHost(): string {
     return `${this.env.B2_BUCKET}.s3.${this.region}.backblazeb2.com`;
   }
 
-  /** 对象公开 URL（浏览器可直接读取，支持 Range） */
-  publicUrl(key: string): string {
-    return `https://${this.publicHost}/${key}`;
+  /**
+   * 生成预签名 GET URL（query-parameter Signature V4）。
+   * 私有桶对象需带签名才能读取；URL 默认 1 小时有效，浏览器直连 B2，支持 Range。
+   */
+  async getSignedUrl(key: string, expiresSeconds = 3600): Promise<string> {
+    const amzDate = amzDateOf(new Date());
+    const dateStamp = amzDate.slice(0, 8);
+    const host = this.publicHost;
+    const scope = `${dateStamp}/${this.region}/s3/aws4_request`;
+    const credential = encodeURIComponent(`${this.env.B2_ACCESS_KEY}/${scope}`);
+    const canonicalQuery = [
+      'X-Amz-Algorithm=AWS4-HMAC-SHA256',
+      `X-Amz-Credential=${credential}`,
+      `X-Amz-Date=${amzDate}`,
+      `X-Amz-Expires=${expiresSeconds}`,
+      'X-Amz-SignedHeaders=host',
+    ].join('&');
+
+    const canonicalRequest = [
+      'GET',
+      '/' + key,
+      canonicalQuery,
+      `host:${host}\n`,
+      'host',
+      'UNSIGNED-PAYLOAD',
+    ].join('\n');
+
+    const stringToSign = [
+      'AWS4-HMAC-SHA256',
+      amzDate,
+      scope,
+      await sha256Hex(canonicalRequest),
+    ].join('\n');
+
+    const signingKey = await getSignatureKey(
+      this.env.B2_SECRET_KEY,
+      dateStamp,
+      this.region,
+      's3'
+    );
+    const signature = bufToHex(await hmacSha256(signingKey, stringToSign));
+
+    return `https://${host}/${key}?${canonicalQuery}&X-Amz-Signature=${signature}`;
   }
 
   /** 生成 S3 签名请求头（AWS Signature V4） */
@@ -199,9 +241,9 @@ export class B2Storage {
     }
   }
 
-  /** 服务器端读取对象文本（如歌词） */
+  /** 服务器端读取对象文本（如歌词，用短时预签名 URL） */
   async getText(key: string): Promise<string | null> {
-    const res = await fetch(this.publicUrl(key));
+    const res = await fetch(await this.getSignedUrl(key, 600));
     if (!res.ok) return null;
     return res.text();
   }

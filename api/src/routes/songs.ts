@@ -56,13 +56,13 @@ app.get('/genres', async (c) => {
   return c.json({ genres: results });
 });
 
-// ---------- 封面图（B2 公开桶，302 重定向到公开 URL） ----------
+// ---------- 封面图（B2 私有桶，预签名 URL 307 重定向） ----------
 app.get('/:id/cover', async (c) => {
   const id = Number(c.req.param('id'));
   const song = await c.env.DB.prepare('SELECT cover_key FROM songs WHERE id = ?').bind(id).first<{ cover_key: string | null }>();
   if (!song || !song.cover_key) return c.body(null, 204);
 
-  return Response.redirect(b2(c.env).publicUrl(song.cover_key), 307);
+  return Response.redirect(await b2(c.env).getSignedUrl(song.cover_key), 307);
 });
 
 // ---------- 我的收藏列表（需登录） ----------
@@ -116,13 +116,13 @@ app.get('/:id', async (c) => {
   });
 });
 
-// ---------- 流式播放（B2 公开桶支持 Range，307 重定向保留 Range 头） ----------
+// ---------- 流式播放（B2 私有桶，预签名 URL 307 重定向，支持 Range 拖动进度） ----------
 app.get('/:id/stream', async (c) => {
   const id = Number(c.req.param('id'));
   const song = await c.env.DB.prepare('SELECT audio_key FROM songs WHERE id = ?').bind(id).first<{ audio_key: string }>();
   if (!song) return c.json({ error: '歌曲不存在' }, 404);
 
-  return Response.redirect(b2(c.env).publicUrl(song.audio_key), 307);
+  return Response.redirect(await b2(c.env).getSignedUrl(song.audio_key), 307);
 });
 
 // ---------- 歌词（返回纯文本，前端解析 LRC） ----------

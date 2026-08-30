@@ -31,7 +31,7 @@ app.post('/avatar', authRequired, async (c) => {
   return c.json({ success: true, avatar_key: key });
 });
 
-/** 获取头像（B2 公开桶，302 重定向） */
+/** 获取头像（B2 私有桶，预签名 URL 307 重定向） */
 app.get('/:id/avatar', async (c) => {
   const id = Number(c.req.param('id'));
   const user = await c.env.DB.prepare('SELECT avatar_key FROM users WHERE id = ?').bind(id).first<{
@@ -39,7 +39,7 @@ app.get('/:id/avatar', async (c) => {
   }>();
   if (!user || !user.avatar_key) return c.body(null, 204);
 
-  return Response.redirect(b2(c.env).publicUrl(user.avatar_key), 307);
+  return Response.redirect(await b2(c.env).getSignedUrl(user.avatar_key), 307);
 });
 
 export default app;
