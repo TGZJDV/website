@@ -36,11 +36,10 @@ RESEND_API_KEY = "dev-no-key"
 EMAIL_FROM = "CloudMusic <onboarding@resend.dev>"
 
 # --- Backblaze B2 存储（替换原 R2）---
-# 生产环境建议用 wrangler secret put 设置以下值：
+# 真实密钥在本地 api/.dev.vars（已 gitignore），生产环境用：
 #   wrangler secret put B2_ACCESS_KEY
 #   wrangler secret put B2_SECRET_KEY
-#   wrangler secret put B2_BUCKET
-B2_ACCESS_KEY = "replace-me-keyID"
-B2_SECRET_KEY = "replace-me-applicationKey"
-B2_BUCKET = "music-files"
-B2_REGION = "us-west-004"
+# 注意：B2_ACCESS_KEY/B2_SECRET_KEY 不要写进本文件的 [vars]，
+#       否则会覆盖 .dev.vars 里的真实值（[vars] 优先级更高）
+B2_BUCKET = "music-file"
+B2_REGION = "us-east-005"

@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
   username      TEXT    NOT NULL UNIQUE,
   password_hash TEXT    NOT NULL,
   password_salt TEXT    NOT NULL,
-  avatar_key    TEXT,                    -- R2 头像 key
+  avatar_key    TEXT,                    -- B2 头像 key
   created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -35,9 +35,9 @@ CREATE TABLE IF NOT EXISTS songs (
   title       TEXT    NOT NULL,
   artist      TEXT    NOT NULL DEFAULT '',
   genre       TEXT    NOT NULL DEFAULT '其他',
-  cover_key   TEXT,                    -- R2 封面图 key
-  audio_key   TEXT    NOT NULL,        -- R2 音频文件 key
-  lyrics_key  TEXT,                    -- R2 歌词文件 key (LRC)
+  cover_key   TEXT,                    -- B2 封面图 key
+  audio_key   TEXT    NOT NULL,        -- B2 音频文件 key
+  lyrics_key  TEXT,                    -- B2 歌词文件 key (LRC)
   duration    INTEGER NOT NULL DEFAULT 0,  -- 秒
   uploader_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at  TEXT    NOT NULL DEFAULT (datetime('now'))

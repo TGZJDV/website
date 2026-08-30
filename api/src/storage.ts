@@ -22,9 +22,11 @@ function bufToHex(buf: ArrayBuffer): string {
     .join('');
 }
 
-async function sha256Hex(data: ArrayBuffer | string): Promise<string> {
-  const bytes =
-    typeof data === 'string' ? (encoder.encode(data).buffer as ArrayBuffer) : data;
+async function sha256Hex(data: ArrayBuffer | Uint8Array | string): Promise<string> {
+  let bytes: ArrayBuffer;
+  if (typeof data === 'string') bytes = encoder.encode(data).buffer as ArrayBuffer;
+  else if (data instanceof ArrayBuffer) bytes = data;
+  else bytes = toArrayBuffer(data);
   const hash = await crypto.subtle.digest('SHA-256', bytes);
   return bufToHex(hash);
 }
@@ -82,12 +84,7 @@ export class B2Storage {
     return this.env.B2_REGION || 'us-west-004';
   }
 
-  /** S3 API 主机（上传/删除用） */
-  private get s3Host(): string {
-    return `s3.${this.region}.backblazeb2.com`;
-  }
-
-  /** 公开读取主机（用于签名与直连 B2） */
+  /** 读取/上传/删除共用主机（virtual-hosted style：bucket.s3.region） */
   private get publicHost(): string {
     return `${this.env.B2_BUCKET}.s3.${this.region}.backblazeb2.com`;
   }
@@ -147,17 +144,20 @@ export class B2Storage {
   ): Promise<Record<string, string>> {
     const amzDate = amzDateOf(date);
     const dateStamp = amzDate.slice(0, 8);
+    // B2 要求 x-amz-date 必须参与签名，故统一加入签名 header 集合
+    const allHeaders: Record<string, string> = { ...headers, 'x-amz-date': amzDate };
 
-    // 规范请求
+    // 规范请求（canonical headers 必须按 header 名 ASCII 排序）
     const canonicalUri = '/' + key;
     const canonicalQuery = '';
-    const canonicalHeaders =
-      Object.entries(headers)
-        .map(([k, v]) => `${k.toLowerCase()}:${v.trim()}\n`)
-        .join('');
-    const signedHeadersList = Object.keys(headers)
-      .map((h) => h.toLowerCase())
-      .sort()
+    const sortedEntries = Object.entries(allHeaders).sort(([a], [b]) =>
+      a.toLowerCase() < b.toLowerCase() ? -1 : 1
+    );
+    const canonicalHeaders = sortedEntries
+      .map(([k, v]) => `${k.toLowerCase()}:${v.trim()}\n`)
+      .join('');
+    const signedHeadersList = sortedEntries
+      .map(([k]) => k.toLowerCase())
       .join(';');
     const canonicalRequest = [
       method,
@@ -197,20 +197,23 @@ export class B2Storage {
     data: ArrayBuffer | Uint8Array,
     contentType: string
   ): Promise<void> {
-    const body =
-      data instanceof ArrayBuffer ? data : toArrayBuffer(data);
-    const payloadHash = await sha256Hex(body);
+    const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+    // S3 上传采用 UNSIGNED-PAYLOAD（AWS 标准做法，无需预计算 body hash）
+    const payloadHash = 'UNSIGNED-PAYLOAD';
     const date = new Date();
-    const headers: Record<string, string> = {
-      host: this.s3Host,
+    // virtual-hosted style：host = bucket.s3.region，canonical URI = /key
+    const host = this.publicHost;
+    const signingHeaders: Record<string, string> = {
+      host,
       'content-type': contentType,
+      'x-amz-content-sha256': payloadHash,
     };
-    const signed = await this.signedHeaders('PUT', key, headers, payloadHash, date);
+    const signed = await this.signedHeaders('PUT', key, signingHeaders, payloadHash, date);
 
-    const res = await fetch(`https://${this.s3Host}/${this.env.B2_BUCKET}/${key}`, {
+    const res = await fetch(`https://${host}/${key}`, {
       method: 'PUT',
-      headers: { ...headers, ...signed },
-      body,
+      headers: { 'content-type': contentType, ...signed },
+      body: new Blob([toArrayBuffer(bytes)], { type: contentType }),
     });
     if (!res.ok) {
       const errText = await res.text().catch(() => '');
@@ -222,19 +225,18 @@ export class B2Storage {
   async remove(key: string): Promise<void> {
     const date = new Date();
     const payloadHash = await sha256Hex(''); // 空 body
+    const host = this.publicHost;
     const headers: Record<string, string> = {
-      host: this.s3Host,
+      host,
       'content-type': 'application/xml',
+      'x-amz-content-sha256': payloadHash,
     };
     const signed = await this.signedHeaders('DELETE', key, headers, payloadHash, date);
 
-    const res = await fetch(
-      `https://${this.s3Host}/${this.env.B2_BUCKET}/${key}`,
-      {
-        method: 'DELETE',
-        headers: { ...headers, ...signed },
-      }
-    );
+    const res = await fetch(`https://${host}/${key}`, {
+      method: 'DELETE',
+      headers: { ...headers, ...signed },
+    });
     if (res.status !== 204 && res.status !== 200 && res.status !== 404) {
       const errText = await res.text().catch(() => '');
       throw new Error(`B2 删除失败(${res.status}): ${errText}`);

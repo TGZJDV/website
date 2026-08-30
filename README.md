@@ -71,14 +71,25 @@ B2 提供 **10GB 免费额度**、S3 兼容、无需绑定银行卡：
 
 1. 注册 [Backblaze](https://www.backblaze.com/) 账号（免费）。
 2. 进入 **Buckets** → **Create a Bucket**：
-   - 桶名自定（如 `music-files`），记作 `B2_BUCKET`。
+   - 桶名自定（如 `music-file`），记作 `B2_BUCKET`。
    - **Files in Bucket are: Private**（选**私有**即可！）。
    - ⚠️ 不要选 Public：B2 的**公开桶要求绑定付款方式**（需扣 1 美元验证费）。私有桶无需绑卡，读取通过 Worker 生成的**预签名 URL** 完成。
-   - 记下桶所在区域（如 `us-west-004`），即 `B2_REGION`。
+   - 记下桶所在区域（如 `us-east-005`），即 `B2_REGION`。
 3. 进入 **App Keys** → **Add a New Application Key**：
    - 权限勾选读写、桶范围选刚建的桶。
-   - 记下 **keyID**（填 `B2_ACCESS_KEY`）与 **applicationKey**（填 `B2_SECRET_KEY`）。
-4. 把这些值填到 `api/wrangler.toml` 的 `[vars]`，或生产环境用 secret 设置：
+   - 记下 **keyID**（填 `B2_ACCESS_KEY`）与 **applicationKey**（填 `B2_SECRET_KEY`）——applicationKey 只在创建时显示一次，务必立即保存。
+4. **本地开发**：把密钥写入 `api/.dev.vars`（该文件已被 `.gitignore` 忽略，不会提交到 Git）：
+
+```
+B2_ACCESS_KEY=你的keyID
+B2_SECRET_KEY=你的applicationKey
+B2_BUCKET=music-file
+B2_REGION=us-east-005
+```
+
+> ⚠️ 不要把 `B2_ACCESS_KEY`/`B2_SECRET_KEY` 写进 `wrangler.toml` 的 `[vars]`：`[vars]` 会**覆盖** `.dev.vars` 里的同名变量（导致本地加载占位符），且 `[vars]` 明文会随 Git 泄露。`[vars]` 里只保留非敏感的 `B2_BUCKET`/`B2_REGION`。
+
+5. **生产部署**：用 secret 设置（`.dev.vars` 不会部署到线上）：
 
 ```bash
 npx wrangler secret put B2_ACCESS_KEY
