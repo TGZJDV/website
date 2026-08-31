@@ -1,4 +1,4 @@
-import type { Song, SongListResponse, Playlist, Comment, GenreCount, User } from './types';
+import type { Song, SongListResponse, Playlist, Comment, GenreCount, User, AdminUser } from './types';
 
 // 后端 API 基础地址：可通过环境变量覆盖
 export const API_URL = (import.meta.env.VITE_API_URL as string) || '/api';
@@ -235,4 +235,19 @@ export const commentsApi = {
     }),
   remove: (commentId: number) =>
     request<{ success: boolean }>(`/comments/${commentId}`, { method: 'DELETE' }),
+};
+
+// ---------- 管理员（用户管理） ----------
+export const adminApi = {
+  listUsers: () => request<{ users: AdminUser[] }>('/admin/users'),
+  updateUser: (
+    id: number,
+    data: { username?: string; title?: string | null; is_admin?: 0 | 1; banned?: 0 | 1 }
+  ) =>
+    request<{ success: boolean; user: AdminUser }>(`/admin/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  deleteUser: (id: number) =>
+    request<{ success: boolean }>(`/admin/users/${id}`, { method: 'DELETE' }),
 };

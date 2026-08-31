@@ -107,7 +107,13 @@ app.post('/register', zValidator('json', registerSchema), async (c) => {
   const expiresIn = Number(c.env.JWT_EXPIRES || 604800);
   const token = await signJwt({ sub: id, email: normalizedEmail, username }, c.env.JWT_SECRET, expiresIn);
 
-  return c.json({ token, user: { id, email: normalizedEmail, username, avatar_key: null } }, 201);
+  return c.json(
+    {
+      token,
+      user: { id, email: normalizedEmail, username, avatar_key: null, title: null, is_admin: 0, banned: 0 },
+    },
+    201
+  );
 });
 
 /** 登录 */
@@ -117,6 +123,7 @@ app.post('/login', zValidator('json', loginSchema), async (c) => {
 
   const row = await c.env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(normalizedEmail).first();
   if (!row) return c.json({ error: '邮箱或密码错误' }, 401);
+  if (Number(row.banned)) return c.json({ error: '该账号已被封禁' }, 403);
 
   const hash = await hashPassword(password, String(row.password_salt));
   if (hash !== String(row.password_hash)) return c.json({ error: '邮箱或密码错误' }, 401);
@@ -135,6 +142,9 @@ app.post('/login', zValidator('json', loginSchema), async (c) => {
       email: String(row.email),
       username: String(row.username),
       avatar_key: row.avatar_key ? String(row.avatar_key) : null,
+      title: row.title ? String(row.title) : null,
+      is_admin: Number(row.is_admin || 0),
+      banned: Number(row.banned || 0),
     },
   });
 });

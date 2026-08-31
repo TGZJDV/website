@@ -5,7 +5,23 @@ export interface User {
   email: string;
   username: string;
   avatar_key?: string | null;
+  title?: string | null;
+  is_admin?: number;
+  banned?: number;
   created_at?: string;
+}
+
+/** 管理员面板中的用户信息 */
+export interface AdminUser {
+  id: number;
+  email: string;
+  username: string;
+  avatar_key: string | null;
+  title: string | null;
+  is_admin: number;
+  banned: number;
+  songs_count: number;
+  created_at: string;
 }
 
 export interface Song {
@@ -19,6 +35,7 @@ export interface Song {
   duration: number;
   uploader_id: number;
   uploader_name?: string;
+  uploader_title?: string | null;
   created_at: string;
 }
 
@@ -43,6 +60,7 @@ export interface Comment {
   song_id: number;
   user_id: number;
   username: string;
+  title?: string | null;
   content: string;
   created_at: string;
 }

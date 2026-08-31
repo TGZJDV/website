@@ -194,7 +194,14 @@ export default function SongPage() {
               comments.map((c) => (
                 <div key={c.id} className="border-b border-surface3 pb-3">
                   <div className="mb-1 flex items-center justify-between">
-                    <span className="text-sm font-medium text-primary">{c.username}</span>
+                    <span className="flex items-center gap-1.5 text-sm font-medium text-primary">
+                      {c.username}
+                      {c.title && (
+                        <span className="rounded-full bg-surface3 px-1.5 py-0.5 text-[11px] font-normal text-muted">
+                          {c.title}
+                        </span>
+                      )}
+                    </span>
                     <span className="flex items-center gap-2 text-xs text-muted">
                       {formatRelative(c.created_at)}
                       {user && c.user_id === user.id && (
@@ -225,7 +232,14 @@ function SongMeta({ song, favoriteCount }: { song: Song; favoriteCount: number }
         {formatDuration(song.duration)}
       </p>
       <p className="mt-1 text-xs text-muted">
-        上传者：{song.uploader_name || '未知'} · {formatRelative(song.created_at)} · ♥ {favoriteCount}
+        上传者：<span className="text-text">{song.uploader_name || '未知'}</span>
+        {song.uploader_title && (
+          <span className="ml-1 rounded-full bg-surface3 px-1.5 py-0.5 text-[11px] text-primary">
+            {song.uploader_title}
+          </span>
+        )}
+        {' · '}
+        {formatRelative(song.created_at)} · ♥ {favoriteCount}
       </p>
     </div>
   );

@@ -89,8 +89,25 @@ export default function MePage() {
           </label>
         </div>
         <div>
-          <h1 className="text-2xl font-bold">{user.username}</h1>
+          <h1 className="flex flex-wrap items-center gap-2 text-2xl font-bold">
+            {user.username}
+            {user.is_admin === 1 && (
+              <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-medium text-accent">
+                管理员
+              </span>
+            )}
+            {user.title && (
+              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
+                {user.title}
+              </span>
+            )}
+          </h1>
           <p className="text-sm text-muted">{user.email}</p>
+          {user.is_admin === 1 && (
+            <Link to="/admin" className="mt-1.5 inline-block text-sm text-primary hover:underline">
+              ⚙ 管理后台
+            </Link>
+          )}
         </div>
         <div className="ml-auto">
           <Link to="/upload" className="btn-primary !px-4">

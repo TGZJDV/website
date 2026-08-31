@@ -19,6 +19,9 @@ export type User = {
   email: string;
   username: string;
   avatar_key: string | null;
+  title: string | null; // 头衔（管理员可设置）
+  is_admin: number; // 0 或 1
+  banned: number; // 0 或 1
   created_at: string;
 };
 
@@ -34,6 +37,7 @@ export type Song = {
   duration: number;
   uploader_id: number;
   uploader_name?: string;
+  uploader_title?: string | null;
   created_at: string;
 };
 

@@ -9,6 +9,7 @@ import userRoutes from './routes/users';
 import songRoutes from './routes/songs';
 import playlistRoutes from './routes/playlists';
 import commentRoutes from './routes/comments';
+import adminRoutes from './routes/admin';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -24,6 +25,7 @@ app.route('/api/users', userRoutes);
 app.route('/api/songs', songRoutes);
 app.route('/api/playlists', playlistRoutes);
 app.route('/api/comments', commentRoutes);
+app.route('/api/admin', adminRoutes);
 
 // 404
 app.notFound((c) => c.json({ error: '接口不存在' }, 404));

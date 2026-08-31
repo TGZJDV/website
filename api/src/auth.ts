@@ -86,10 +86,14 @@ export async function getAuthUser<T extends { Bindings: Env }>(c: Context<T>, en
   if (!header?.startsWith('Bearer ')) return null;
   const payload = await verifyJwt(header.slice(7), env.JWT_SECRET);
   if (!payload || typeof payload.sub !== 'number') return null;
-  const user = await env.DB.prepare('SELECT id, email, username, avatar_key, created_at FROM users WHERE id = ?')
+  const user = await env.DB.prepare(
+    'SELECT id, email, username, avatar_key, title, is_admin, banned, created_at FROM users WHERE id = ?'
+  )
     .bind(payload.sub)
     .first<User>();
-  return user ?? null;
+  if (!user) return null;
+  if (Number(user.banned)) return null; // 封禁用户立即失效（所有需登录接口均拒绝）
+  return user;
 }
 
 /** 登录鉴权中间件：未登录返回 401 */
@@ -97,5 +101,12 @@ export const authRequired = createMiddleware<{ Bindings: Env; Variables: AppVari
   const user = await getAuthUser(c, c.env);
   if (!user) return c.json({ error: '请先登录' }, 401);
   c.set('user', user);
+  await next();
+});
+
+/** 管理员鉴权中间件：需在 authRequired 之后使用（未登录 401 / 非管理员 403） */
+export const requireAdmin = createMiddleware<{ Bindings: Env; Variables: AppVariables }>(async (c, next) => {
+  const user = c.get('user');
+  if (!user || Number(user.is_admin) !== 1) return c.json({ error: '需要管理员权限' }, 403);
   await next();
 });

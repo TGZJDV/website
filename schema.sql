@@ -13,8 +13,18 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT    NOT NULL,
   password_salt TEXT    NOT NULL,
   avatar_key    TEXT,                    -- B2 头像 key
+  title         TEXT,                    -- 头衔（管理员可设置）
+  is_admin      INTEGER NOT NULL DEFAULT 0,  -- 是否管理员（1=是）
+  banned        INTEGER NOT NULL DEFAULT 0,  -- 是否封禁（1=是）
   created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
 );
+
+-- 已存在的库迁移（ALTER TABLE，非全新初始化时执行）：
+--   ALTER TABLE users ADD COLUMN title TEXT;
+--   ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0;
+--   ALTER TABLE users ADD COLUMN banned INTEGER NOT NULL DEFAULT 0;
+-- 将现有用户 TGZJDV 设为管理员（用户名/密码均沿用现有数据，密码不写入仓库）：
+--   UPDATE users SET is_admin = 1, title = '管理员' WHERE username = 'TGZJDV';
 
 -- 邮箱验证码表（注册验证 / 忘记密码）
 CREATE TABLE IF NOT EXISTS email_codes (

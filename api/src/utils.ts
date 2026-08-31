@@ -16,6 +16,7 @@ export function toPublicSong(row: Record<string, unknown>): Song {
     duration: Number(row.duration),
     uploader_id: Number(row.uploader_id),
     uploader_name: row.uploader_name ? String(row.uploader_name) : undefined,
+    uploader_title: row.uploader_title ? String(row.uploader_title) : null,
     created_at: String(row.created_at),
   };
 }

@@ -31,7 +31,7 @@ app.get('/', async (c) => {
   }
 
   const { results } = await c.env.DB.prepare(
-    `SELECT s.*, u.username AS uploader_name
+    `SELECT s.*, u.username AS uploader_name, u.title AS uploader_title
      FROM songs s JOIN users u ON s.uploader_id = u.id
      WHERE ${where} ORDER BY s.created_at DESC LIMIT ? OFFSET ?`
   )
@@ -69,7 +69,7 @@ app.get('/:id/cover', async (c) => {
 app.get('/favorites', authRequired, async (c) => {
   const user = c.get('user');
   const { results } = await c.env.DB.prepare(
-    `SELECT s.*, u.username AS uploader_name
+    `SELECT s.*, u.username AS uploader_name, u.title AS uploader_title
      FROM favorites f
      JOIN songs s ON f.song_id = s.id
      JOIN users u ON s.uploader_id = u.id
@@ -87,7 +87,7 @@ app.get('/:id', async (c) => {
   if (!Number.isFinite(id)) return c.json({ error: '参数错误' }, 400);
 
   const row = await c.env.DB.prepare(
-    `SELECT s.*, u.username AS uploader_name
+    `SELECT s.*, u.username AS uploader_name, u.title AS uploader_title
      FROM songs s JOIN users u ON s.uploader_id = u.id WHERE s.id = ?`
   )
     .bind(id)
