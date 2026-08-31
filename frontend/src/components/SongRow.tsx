@@ -13,10 +13,11 @@ interface SongRowProps {
   showIndex?: boolean;
   onRemoved?: () => void;
   showRemove?: boolean;
+  onDelete?: () => void;
 }
 
 /** 列表行：序号 + 封面 + 标题 + 歌手 + 时长 + 操作 */
-export default function SongRow({ song, index, showIndex = true, onRemoved, showRemove = false }: SongRowProps) {
+export default function SongRow({ song, index, showIndex = true, onRemoved, showRemove = false, onDelete }: SongRowProps) {
   const navigate = useNavigate();
   const { current, playing, playSong, toggle } = usePlayerStore();
   const user = useAuthStore((s) => s.user);
@@ -129,6 +130,17 @@ export default function SongRow({ song, index, showIndex = true, onRemoved, show
                 >
                   加入播放列表
                 </button>
+                {onDelete && user && song.uploader_id === user.id && (
+                  <button
+                    className="block w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-surface3"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onDelete();
+                    }}
+                  >
+                    删除
+                  </button>
+                )}
                 {showRemove && user && song.uploader_id === user.id && (
                   <button
                     className="block w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-surface3"

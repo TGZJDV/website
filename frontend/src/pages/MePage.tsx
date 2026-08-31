@@ -61,6 +61,17 @@ export default function MePage() {
     e.target.value = '';
   };
 
+  /** 真正删除自己上传的歌曲（调后端 API，同时清理 OSS 对象） */
+  const handleDeleteSong = async (song: Song) => {
+    if (!window.confirm(`确定删除《${song.title}》吗？此操作不可恢复。`)) return;
+    try {
+      await songsApi.remove(song.id);
+      setUploaded((prev) => prev.filter((x) => x.id !== song.id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '删除失败');
+    }
+  };
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
       {/* 用户信息 */}
@@ -141,7 +152,12 @@ export default function MePage() {
                 <p className="py-8 text-center text-muted">还没有上传过歌曲</p>
               ) : (
                 uploaded.map((s, i) => (
-                  <SongRow key={s.id} song={s} index={i + 1} showRemove={true} onRemoved={() => setUploaded((prev) => prev.filter((x) => x.id !== s.id))} />
+                  <SongRow
+                    key={s.id}
+                    song={s}
+                    index={i + 1}
+                    onDelete={() => handleDeleteSong(s)}
+                  />
                 ))
               ))}
             {tab === 'favorites' &&
@@ -149,7 +165,20 @@ export default function MePage() {
                 <p className="py-8 text-center text-muted">还没有收藏歌曲</p>
               ) : (
                 favorites.map((s, i) => (
-                  <SongRow key={s.id} song={s} index={i + 1} onRemoved={() => setFavorites((prev) => prev.filter((x) => x.id !== s.id))} />
+                  <SongRow
+                    key={s.id}
+                    song={s}
+                    index={i + 1}
+                    showRemove
+                    onRemoved={async () => {
+                      try {
+                        await songsApi.unfavorite(s.id);
+                        setFavorites((prev) => prev.filter((x) => x.id !== s.id));
+                      } catch (err) {
+                        alert(err instanceof Error ? err.message : '取消收藏失败');
+                      }
+                    }}
+                  />
                 ))
               ))}
           </div>
