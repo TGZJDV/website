@@ -28,16 +28,21 @@ export default function NowPlayingPage() {
 
   const [lyrics, setLyrics] = useState<LrcLine[]>([]);
   const [plainLyrics, setPlainLyrics] = useState<string | null>(null);
+  const [lyricsLoading, setLyricsLoading] = useState(false);
 
   const songId = current?.id;
   const { favorited, toggle: toggleFavorite } = useFavorite(songId);
   const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
 
-  // 加载当前歌曲歌词
+  // 加载当前歌曲歌词（加载中不显示“暂无歌词”，避免闪烁误导）
   useEffect(() => {
     setLyrics([]);
     setPlainLyrics(null);
-    if (!songId) return;
+    if (!songId) {
+      setLyricsLoading(false);
+      return;
+    }
+    setLyricsLoading(true);
     songsApi
       .lyrics(songId)
       .then((text) => {
@@ -45,7 +50,8 @@ export default function NowPlayingPage() {
         if (lines.length > 0) setLyrics(lines);
         else if (text.trim()) setPlainLyrics(text.trim());
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLyricsLoading(false));
   }, [songId]);
 
   if (!current) {
@@ -60,6 +66,24 @@ export default function NowPlayingPage() {
   }
 
   const lineIndex = currentLrcIndex(lyrics, currentTime);
+
+  // 进度条（移动端与桌面端复用）
+  const seekBar = (
+    <>
+      <span className="text-xs tabular-nums text-muted">{formatDuration(currentTime)}</span>
+      <input
+        type="range"
+        min={0}
+        max={duration || 0}
+        step={0.1}
+        value={Math.min(currentTime, duration || 0)}
+        onChange={(e) => seek(Number(e.target.value))}
+        className="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full accent-primary"
+        style={{ background: `linear-gradient(to right, #0ea5e9 ${progress}%, #2a2a2a ${progress}%)` }}
+      />
+      <span className="text-xs tabular-nums text-muted">{formatDuration(duration)}</span>
+    </>
+  );
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-gradient-to-br from-surface2 via-surface to-black text-text">
@@ -95,7 +119,9 @@ export default function NowPlayingPage() {
 
         {/* 右：歌词（只显示当前行附近，上下各 4 条） */}
         <div className="flex min-h-0 items-center justify-center">
-          {plainLyrics ? (
+          {lyricsLoading ? (
+            <p className="text-muted">歌词加载中…</p>
+          ) : plainLyrics ? (
             <div className="max-h-full w-full overflow-x-hidden overflow-y-auto whitespace-pre-wrap break-words px-4 text-center text-base leading-loose text-muted">
               {plainLyrics}
             </div>
@@ -131,10 +157,13 @@ export default function NowPlayingPage() {
         </div>
       </div>
 
-      {/* 底部播放控制：控制按钮 | 进度条 | 音量（一行，移动端隐藏音量） */}
-      <div className="flex h-24 shrink-0 items-center gap-3 border-t border-surface3 bg-surface/70 px-4 backdrop-blur sm:gap-6 sm:px-6">
-        {/* 控制按钮 + 收藏 */}
-        <div className="flex shrink-0 items-center gap-1 sm:gap-4">
+      {/* 底部播放控制：移动端进度条在控制按钮上方；桌面端一行 */}
+      <div className="flex h-28 shrink-0 flex-col justify-center gap-2 border-t border-surface3 bg-surface/70 px-4 backdrop-blur sm:h-24 sm:flex-row sm:items-center sm:gap-6 sm:px-6">
+        {/* 进度条（移动端：控制按钮上方） */}
+        <div className="flex items-center gap-3 sm:hidden">{seekBar}</div>
+
+        {/* 控制按钮 + 收藏（移动端居中） */}
+        <div className="flex shrink-0 items-center justify-center gap-1 sm:gap-4">
           <button
             className={`flex items-center justify-center rounded-full p-2 transition ${
               favorited ? 'text-primary' : 'text-muted hover:text-text'
@@ -188,23 +217,8 @@ export default function NowPlayingPage() {
           </button>
         </div>
 
-        {/* 进度条（中间） */}
-        <div className="flex flex-1 items-center gap-3">
-          <span className="text-xs tabular-nums text-muted">{formatDuration(currentTime)}</span>
-          <input
-            type="range"
-            min={0}
-            max={duration || 0}
-            step={0.1}
-            value={Math.min(currentTime, duration || 0)}
-            onChange={(e) => seek(Number(e.target.value))}
-            className="h-1 flex-1 cursor-pointer appearance-none rounded-full accent-primary"
-            style={{
-              background: `linear-gradient(to right, #0ea5e9 ${progress}%, #2a2a2a ${progress}%)`,
-            }}
-          />
-          <span className="text-xs tabular-nums text-muted">{formatDuration(duration)}</span>
-        </div>
+        {/* 进度条（桌面端） */}
+        <div className="hidden flex-1 items-center gap-3 sm:flex">{seekBar}</div>
 
         {/* 音量（桌面端显示） */}
         <div className="hidden shrink-0 items-center gap-2 sm:flex">
