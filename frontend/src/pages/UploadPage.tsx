@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { songsApi } from '../api';
+import { songsApi, uploadToPresigned } from '../api';
 import { useAuthStore } from '../store/auth';
 
 const GENRES = ['流行', '摇滚', '民谣', '电子', '嘻哈', '古典', '爵士', '国风', '纯音乐', '其他'];
@@ -118,18 +118,38 @@ export default function UploadPage() {
       return;
     }
 
-    const form = new FormData();
-    form.append('title', title.trim());
-    form.append('artist', artist.trim());
-    form.append('genre', genre);
-    form.append('duration', String(duration));
-    form.append('audio', audioFile);
-    if (coverFile) form.append('cover', coverFile);
-    if (lyricsFile) form.append('lyrics', lyricsFile);
-
     setUploading(true);
     try {
-      const res = await songsApi.upload(form);
+      // 1. 向后端获取预签名 PUT URL（含音频/封面/歌词）
+      const presigned = await songsApi.presign({
+        title: title.trim(),
+        artist: artist.trim(),
+        genre,
+        duration,
+        audioName: audioFile.name,
+        coverName: coverFile ? coverFile.name : undefined,
+        lyricsName: lyricsFile ? lyricsFile.name : undefined,
+      });
+
+      // 2. 浏览器直传文件到 OSS（绕过 Worker 中转，国内节点快）
+      await uploadToPresigned(presigned.audioUrl, audioFile);
+      if (coverFile && presigned.coverUrl) {
+        await uploadToPresigned(presigned.coverUrl, coverFile);
+      }
+      if (lyricsFile && presigned.lyricsUrl) {
+        await uploadToPresigned(presigned.lyricsUrl, lyricsFile);
+      }
+
+      // 3. 登记歌曲到数据库
+      const res = await songsApi.complete({
+        title: title.trim(),
+        artist: artist.trim(),
+        genre,
+        duration,
+        audioKey: presigned.audioKey,
+        coverKey: presigned.coverKey,
+        lyricsKey: presigned.lyricsKey,
+      });
       setSuccess(res.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : '上传失败');

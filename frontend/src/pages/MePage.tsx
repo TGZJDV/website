@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import SongRow from '../components/SongRow';
 import Avatar from '../components/Avatar';
-import { songsApi, playlistsApi, authApi } from '../api';
+import { songsApi, playlistsApi, authApi, uploadToPresigned } from '../api';
 import { useAuthStore } from '../store/auth';
 import { usePlayerStore } from '../store/player';
 import type { Song, Playlist } from '../types';
@@ -49,10 +49,11 @@ export default function MePage() {
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const form = new FormData();
-    form.append('avatar', file);
     try {
-      await authApi.uploadAvatar(form);
+      // 预签名直传：先拿 URL，浏览器直接 PUT 到 OSS
+      const presigned = await authApi.avatarPresign(file.name);
+      await uploadToPresigned(presigned.url, file);
+      await authApi.avatarComplete(presigned.key);
       await fetchMe();
     } catch (err) {
       alert(err instanceof Error ? err.message : '头像上传失败');

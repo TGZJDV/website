@@ -5,11 +5,12 @@ export type Env = {
   JWT_EXPIRES?: string; // 秒
   RESEND_API_KEY?: string; // 邮件服务（可选，本地开发打印验证码）
   EMAIL_FROM?: string;
-  // Backblaze B2 存储（S3 兼容，替换原 R2）
-  B2_ACCESS_KEY: string; // Application Key ID
-  B2_SECRET_KEY: string; // Application Key
-  B2_BUCKET: string; // 桶名（需 Public）
-  B2_REGION?: string; // 桶区域，如 us-west-004
+  // 阿里云 OSS 存储（S3 兼容，替换原 B2）
+  OSS_ACCESS_KEY: string; // AccessKey ID
+  OSS_SECRET_KEY: string; // AccessKey Secret
+  OSS_BUCKET: string; // 桶名（Private）
+  OSS_REGION?: string; // 区域，如 cn-hangzhou
+  OSS_ENDPOINT: string; // 外网 Endpoint，如 oss-cn-hangzhou.aliyuncs.com
 };
 
 // 用户

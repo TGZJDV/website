@@ -68,6 +68,19 @@ export function streamUrl(songId: number): string {
   return `${API_URL}/songs/${songId}/stream`;
 }
 
+/** 直传文件到预签名 URL（浏览器 PUT 到 OSS，绕过 Worker 中转） */
+export async function uploadToPresigned(url: string, file: File | Blob): Promise<void> {
+  let res: Response;
+  try {
+    res = await fetch(url, { method: 'PUT', body: file });
+  } catch {
+    throw new ApiError('无法连接存储服务，请检查网络', 0);
+  }
+  if (!res.ok) {
+    throw new ApiError(`上传到存储失败(${res.status})`, res.status);
+  }
+}
+
 /** 用户头像地址（带版本参数，上传新头像后立即生效） */
 export function avatarUrl(user: { id: number; avatar_key?: string | null }): string {
   const v = user.avatar_key ? encodeURIComponent(user.avatar_key) : 'default';
@@ -114,6 +127,16 @@ export const authApi = {
       method: 'POST',
       body: form,
     }),
+  avatarPresign: (name: string) =>
+    request<{ success: boolean; key: string; url: string }>('/users/avatar-presign', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
+  avatarComplete: (key: string) =>
+    request<{ success: boolean; avatar_key: string }>('/users/avatar-complete', {
+      method: 'POST',
+      body: JSON.stringify({ key }),
+    }),
 };
 
 // ---------- 歌曲 ----------
@@ -132,6 +155,41 @@ export const songsApi = {
   lyrics: (id: number) => requestText(`/songs/${id}/lyrics`),
   upload: (form: FormData) =>
     request<{ success: boolean; id: number }>('/songs', { method: 'POST', body: form }),
+  presign: (data: {
+    title: string;
+    artist: string;
+    genre: string;
+    duration: number;
+    audioName: string;
+    coverName?: string;
+    lyricsName?: string;
+  }) =>
+    request<{
+      success: boolean;
+      id: string;
+      audioKey: string;
+      audioUrl: string;
+      coverKey: string | null;
+      coverUrl: string | null;
+      lyricsKey: string | null;
+      lyricsUrl: string | null;
+    }>('/songs/presign', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  complete: (data: {
+    title: string;
+    artist: string;
+    genre: string;
+    duration: number;
+    audioKey: string;
+    coverKey?: string | null;
+    lyricsKey?: string | null;
+  }) =>
+    request<{ success: boolean; id: number }>('/songs/complete', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   remove: (id: number) =>
     request<{ success: boolean }>(`/songs/${id}`, { method: 'DELETE' }),
   favorite: (id: number) =>

@@ -7,7 +7,7 @@ import { zValidator } from '@hono/zod-validator';
 import type { Env, AppVariables } from '../types';
 import { authRequired, verifyJwt } from '../auth';
 import { toPublicSong, getExtension, makeKey } from '../utils';
-import { b2 } from '../storage';
+import { s3 } from '../storage';
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -62,7 +62,7 @@ app.get('/:id/cover', async (c) => {
   const song = await c.env.DB.prepare('SELECT cover_key FROM songs WHERE id = ?').bind(id).first<{ cover_key: string | null }>();
   if (!song || !song.cover_key) return c.body(null, 204);
 
-  return Response.redirect(await b2(c.env).getSignedUrl(song.cover_key), 307);
+  return Response.redirect(await s3(c.env).getSignedUrl(song.cover_key), 307);
 });
 
 // ---------- 我的收藏列表（需登录） ----------
@@ -122,7 +122,7 @@ app.get('/:id/stream', async (c) => {
   const song = await c.env.DB.prepare('SELECT audio_key FROM songs WHERE id = ?').bind(id).first<{ audio_key: string }>();
   if (!song) return c.json({ error: '歌曲不存在' }, 404);
 
-  return Response.redirect(await b2(c.env).getSignedUrl(song.audio_key), 307);
+  return Response.redirect(await s3(c.env).getSignedUrl(song.audio_key), 307);
 });
 
 // ---------- 歌词（返回纯文本，前端解析 LRC） ----------
@@ -131,10 +131,71 @@ app.get('/:id/lyrics', async (c) => {
   const song = await c.env.DB.prepare('SELECT lyrics_key FROM songs WHERE id = ?').bind(id).first<{ lyrics_key: string | null }>();
   if (!song || !song.lyrics_key) return c.json({ error: '暂无歌词' }, 404);
 
-  const text = await b2(c.env).getText(song.lyrics_key);
+  const text = await s3(c.env).getText(song.lyrics_key);
   if (text === null) return c.json({ error: '歌词文件不存在' }, 404);
 
   return new Response(text, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+});
+
+// ---------- 预签名上传：前端直传 OSS（避免 Worker 中转，上传更快） ----------
+app.post('/presign', authRequired, async (c) => {
+  const user = c.get('user');
+  const body = await c.req.json();
+  const title = String(body.title || '').trim();
+  if (!title) return c.json({ error: '请填写歌曲标题' }, 400);
+
+  const id = crypto.randomUUID();
+  const audioKey = makeKey('songs', id, getExtension(String(body.audioName || 'audio.mp3')));
+  const storage = s3(c.env);
+  const audioUrl = await storage.getSignedPutUrl(audioKey, 900);
+
+  let coverKey: string | null = null;
+  let coverUrl: string | null = null;
+  if (body.coverName) {
+    coverKey = makeKey('covers', id, getExtension(String(body.coverName)));
+    coverUrl = await storage.getSignedPutUrl(coverKey, 900);
+  }
+  let lyricsKey: string | null = null;
+  let lyricsUrl: string | null = null;
+  if (body.lyricsName) {
+    lyricsKey = makeKey('lyrics', id, 'lrc');
+    lyricsUrl = await storage.getSignedPutUrl(lyricsKey, 900);
+  }
+
+  return c.json({
+    success: true,
+    id,
+    audioKey,
+    audioUrl,
+    coverKey,
+    coverUrl,
+    lyricsKey,
+    lyricsUrl,
+  });
+});
+
+// 前端直传完成后，登记歌曲到数据库
+app.post('/complete', authRequired, async (c) => {
+  const user = c.get('user');
+  const body = await c.req.json();
+  const title = String(body.title || '').trim();
+  const audioKey = String(body.audioKey || '');
+  if (!title) return c.json({ error: '请填写歌曲标题' }, 400);
+  if (!audioKey.startsWith('songs/')) return c.json({ error: '非法音频 key' }, 400);
+
+  const coverKey = body.coverKey ? String(body.coverKey) : null;
+  const lyricsKey = body.lyricsKey ? String(body.lyricsKey) : null;
+  const artist = String(body.artist || '').trim();
+  const genre = String(body.genre || '其他').trim();
+  const duration = Math.max(0, Math.floor(Number(body.duration) || 0));
+
+  const res = await c.env.DB.prepare(
+    'INSERT INTO songs (title, artist, genre, cover_key, audio_key, lyrics_key, duration, uploader_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  )
+    .bind(title, artist, genre, coverKey, audioKey, lyricsKey, duration, user.id)
+    .run();
+
+  return c.json({ success: true, id: Number(res.meta.last_row_id) }, 201);
 });
 
 // ---------- 上传歌曲（multipart，需登录） ----------
@@ -161,20 +222,20 @@ app.post('/', authRequired, async (c) => {
 
   const id = crypto.randomUUID();
   const audioKey = makeKey('songs', id, getExtension(audio.name || 'mp3'));
-  await b2(c.env).put(audioKey, await audio.arrayBuffer(), audio.type || 'audio/mpeg');
+  await s3(c.env).put(audioKey, await audio.arrayBuffer(), audio.type || 'audio/mpeg');
 
   let coverKey: string | null = null;
   if (cover instanceof File && cover.size > 0) {
     if (cover.size > MAX_COVER) return c.json({ error: '封面图片不能超过 10MB' }, 400);
     coverKey = makeKey('covers', id, getExtension(cover.name || 'jpg'));
-    await b2(c.env).put(coverKey, await cover.arrayBuffer(), cover.type || 'image/jpeg');
+    await s3(c.env).put(coverKey, await cover.arrayBuffer(), cover.type || 'image/jpeg');
   }
 
   let lyricsKey: string | null = null;
   if (lyrics instanceof File && lyrics.size > 0) {
     if (lyrics.size > MAX_LYRICS) return c.json({ error: '歌词文件不能超过 512KB' }, 400);
     lyricsKey = makeKey('lyrics', id, 'lrc');
-    await b2(c.env).put(lyricsKey, await lyrics.arrayBuffer(), 'text/plain; charset=utf-8');
+    await s3(c.env).put(lyricsKey, await lyrics.arrayBuffer(), 'text/plain; charset=utf-8');
   }
 
   const res = await c.env.DB.prepare(
@@ -219,7 +280,7 @@ app.delete('/:id', authRequired, async (c) => {
   const keys = [String(song.audio_key)];
   if (song.cover_key) keys.push(String(song.cover_key));
   if (song.lyrics_key) keys.push(String(song.lyrics_key));
-  const storage = b2(c.env);
+  const storage = s3(c.env);
   for (const key of keys) {
     await storage.remove(key).catch(() => {});
   }

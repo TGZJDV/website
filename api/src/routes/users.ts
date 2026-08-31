@@ -5,11 +5,30 @@ import { Hono } from 'hono';
 import type { Env, AppVariables } from '../types';
 import { authRequired } from '../auth';
 import { getExtension, makeKey } from '../utils';
-import { b2 } from '../storage';
+import { s3 } from '../storage';
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
 const MAX_AVATAR = 5 * 1024 * 1024; // 5MB
+
+/** 头像直传：获取预签名 PUT URL（需登录） */
+app.post('/avatar-presign', authRequired, async (c) => {
+  const user = c.get('user');
+  const body = await c.req.json();
+  const key = makeKey('avatars', String(user.id), getExtension(String(body.name || 'avatar.png')));
+  const url = await s3(c.env).getSignedPutUrl(key, 900);
+  return c.json({ success: true, key, url });
+});
+
+/** 头像直传完成后登记（需登录） */
+app.post('/avatar-complete', authRequired, async (c) => {
+  const user = c.get('user');
+  const body = await c.req.json();
+  const key = String(body.key || '');
+  if (!key.startsWith('avatars/')) return c.json({ error: '非法 key' }, 400);
+  await c.env.DB.prepare('UPDATE users SET avatar_key = ? WHERE id = ?').bind(key, user.id).run();
+  return c.json({ success: true, avatar_key: key });
+});
 
 /** 上传头像（multipart，需登录） */
 app.post('/avatar', authRequired, async (c) => {
@@ -25,7 +44,7 @@ app.post('/avatar', authRequired, async (c) => {
   }
 
   const key = makeKey('avatars', String(user.id), getExtension(avatar.name || 'png'));
-  await b2(c.env).put(key, await avatar.arrayBuffer(), avatar.type || 'image/png');
+  await s3(c.env).put(key, await avatar.arrayBuffer(), avatar.type || 'image/png');
   await c.env.DB.prepare('UPDATE users SET avatar_key = ? WHERE id = ?').bind(key, user.id).run();
 
   return c.json({ success: true, avatar_key: key });
@@ -39,7 +58,7 @@ app.get('/:id/avatar', async (c) => {
   }>();
   if (!user || !user.avatar_key) return c.body(null, 204);
 
-  return Response.redirect(await b2(c.env).getSignedUrl(user.avatar_key), 307);
+  return Response.redirect(await s3(c.env).getSignedUrl(user.avatar_key), 307);
 });
 
 export default app;

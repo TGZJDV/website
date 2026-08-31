@@ -1,9 +1,9 @@
 // ============================================================
-// Backblaze B2 存储封装（S3 兼容）
-// 替换原 Cloudflare R2 绑定：写入/删除/读取均通过 AWS Signature V4 签名。
-// 桶保持 **Private（私有）**：B2 的 Public 公开桶要求绑定付款方式（1 美元验证费），
-// 而私有桶无需绑卡。读取时 Worker 生成**预签名 URL**（query-parameter 签名），
-// 再 307 重定向给浏览器直连 B2（支持 Range 流式播放）。
+// 通用 S3 兼容存储封装（阿里云 OSS）
+// 读写均通过 AWS Signature V4 签名（Web Crypto 实现，无第三方依赖）。
+// 桶保持 Private（私有）：读取/上传通过 Worker 生成**预签名 URL**
+// （query-parameter 签名），307 重定向 / 直传，支持 Range 流式播放。
+// 当前用于阿里云 OSS（S3 兼容），也适用于腾讯 COS / Backblaze B2。
 // ============================================================
 import type { Env } from './types';
 
@@ -66,14 +66,15 @@ function amzDateOf(date: Date): string {
 }
 
 /**
- * B2 存储操作。
- * 依赖 env：
- *   B2_ACCESS_KEY  - Application Key ID（KeyID）
- *   B2_SECRET_KEY  - Application Key
- *   B2_BUCKET      - 桶名（需公开 Public）
- *   B2_REGION      - 桶所在区域，如 us-west-004（可选，默认 us-west-004）
+ * S3 兼容存储操作。
+ * 依赖 env（阿里云 OSS）：
+ *   OSS_ACCESS_KEY  - AccessKey ID
+ *   OSS_SECRET_KEY  - AccessKey Secret
+ *   OSS_BUCKET      - 桶名（私有）
+ *   OSS_REGION      - 区域，如 cn-hangzhou
+ *   OSS_ENDPOINT    - 外网 Endpoint，如 oss-cn-hangzhou.aliyuncs.com
  */
-export class B2Storage {
+export class S3Storage {
   private env: Env;
 
   constructor(env: Env) {
@@ -81,24 +82,38 @@ export class B2Storage {
   }
 
   private get region(): string {
-    return this.env.B2_REGION || 'us-west-004';
+    return this.env.OSS_REGION || 'cn-hangzhou';
   }
 
-  /** 读取/上传/删除共用主机（virtual-hosted style：bucket.s3.region） */
+  /** 读取/上传/删除共用主机（virtual-hosted style：bucket.endpoint） */
   private get publicHost(): string {
-    return `${this.env.B2_BUCKET}.s3.${this.region}.backblazeb2.com`;
+    return `${this.env.OSS_BUCKET}.${this.env.OSS_ENDPOINT}`;
   }
 
   /**
    * 生成预签名 GET URL（query-parameter Signature V4）。
-   * 私有桶对象需带签名才能读取；URL 默认 1 小时有效，浏览器直连 B2，支持 Range。
+   * 私有桶对象需带签名才能读取；URL 默认 1 小时有效，浏览器直连，支持 Range。
    */
   async getSignedUrl(key: string, expiresSeconds = 3600): Promise<string> {
+    return this.signQueryUrl('GET', key, expiresSeconds);
+  }
+
+  /** 生成预签名 PUT URL（浏览器直传文件到 OSS，绕过 Worker 中转） */
+  async getSignedPutUrl(key: string, expiresSeconds = 900): Promise<string> {
+    return this.signQueryUrl('PUT', key, expiresSeconds);
+  }
+
+  /** 生成 query-parameter 签名 URL（AWS Signature V4） */
+  private async signQueryUrl(
+    method: 'GET' | 'PUT',
+    key: string,
+    expiresSeconds: number
+  ): Promise<string> {
     const amzDate = amzDateOf(new Date());
     const dateStamp = amzDate.slice(0, 8);
     const host = this.publicHost;
     const scope = `${dateStamp}/${this.region}/s3/aws4_request`;
-    const credential = encodeURIComponent(`${this.env.B2_ACCESS_KEY}/${scope}`);
+    const credential = encodeURIComponent(`${this.env.OSS_ACCESS_KEY}/${scope}`);
     const canonicalQuery = [
       'X-Amz-Algorithm=AWS4-HMAC-SHA256',
       `X-Amz-Credential=${credential}`,
@@ -108,7 +123,7 @@ export class B2Storage {
     ].join('&');
 
     const canonicalRequest = [
-      'GET',
+      method,
       '/' + key,
       canonicalQuery,
       `host:${host}\n`,
@@ -124,7 +139,7 @@ export class B2Storage {
     ].join('\n');
 
     const signingKey = await getSignatureKey(
-      this.env.B2_SECRET_KEY,
+      this.env.OSS_SECRET_KEY,
       dateStamp,
       this.region,
       's3'
@@ -177,7 +192,7 @@ export class B2Storage {
     ].join('\n');
 
     const signingKey = await getSignatureKey(
-      this.env.B2_SECRET_KEY,
+      this.env.OSS_SECRET_KEY,
       dateStamp,
       this.region,
       's3'
@@ -185,7 +200,7 @@ export class B2Storage {
     const signature = bufToHex(await hmacSha256(signingKey, stringToSign));
 
     return {
-      authorization: `AWS4-HMAC-SHA256 Credential=${this.env.B2_ACCESS_KEY}/${scope}, SignedHeaders=${signedHeadersList}, Signature=${signature}`,
+      authorization: `AWS4-HMAC-SHA256 Credential=${this.env.OSS_ACCESS_KEY}/${scope}, SignedHeaders=${signedHeadersList}, Signature=${signature}`,
       'x-amz-date': amzDate,
       'x-amz-content-sha256': payloadHash,
     };
@@ -217,7 +232,7 @@ export class B2Storage {
     });
     if (!res.ok) {
       const errText = await res.text().catch(() => '');
-      throw new Error(`B2 上传失败(${res.status}): ${errText}`);
+      throw new Error(`存储上传失败(${res.status}): ${errText}`);
     }
   }
 
@@ -239,7 +254,7 @@ export class B2Storage {
     });
     if (res.status !== 204 && res.status !== 200 && res.status !== 404) {
       const errText = await res.text().catch(() => '');
-      throw new Error(`B2 删除失败(${res.status}): ${errText}`);
+      throw new Error(`存储删除失败(${res.status}): ${errText}`);
     }
   }
 
@@ -251,7 +266,7 @@ export class B2Storage {
   }
 }
 
-/** 便捷工厂：从 env 构造 B2 存储 */
-export function b2(env: Env): B2Storage {
-  return new B2Storage(env);
+/** 便捷工厂：从 env 构造 S3 兼容存储 */
+export function s3(env: Env): S3Storage {
+  return new S3Storage(env);
 }

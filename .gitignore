@@ -14,3 +14,6 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
+
+# 测试工具脚本（含临时密钥，切勿提交）
+testdata/
