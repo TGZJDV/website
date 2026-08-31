@@ -12,6 +12,30 @@ const navItems = [
   { to: '/upload', label: '上传', icon: 'M12 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-7-7v4a1 1 0 0 0 1.7.7l4.3-4.3-4.3-4.3A1 1 0 0 0 12 3z' },
 ];
 
+/** 移动端底部 Tab 导航（桌面端隐藏，顶栏导航改为桌面端显示） */
+function MobileTabBar() {
+  return (
+    <nav className="fixed inset-x-0 bottom-0 z-40 flex h-14 items-stretch border-t border-surface3 bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden">
+      {navItems.map((item) => (
+        <NavLink
+          key={item.to}
+          to={item.to}
+          className={({ isActive }) =>
+            `flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] transition active:opacity-60 ${
+              isActive ? 'text-primary' : 'text-muted'
+            }`
+          }
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d={item.icon} />
+          </svg>
+          <span>{item.label}</span>
+        </NavLink>
+      ))}
+    </nav>
+  );
+}
+
 /** 主布局：顶部栏 + 左侧导航 + 内容区 + 底部播放条 */
 export default function Layout() {
   const { user, initialized, fetchMe, logout } = useAuthStore();
@@ -34,7 +58,7 @@ export default function Layout() {
           <span className="text-lg font-bold">云音乐</span>
         </Link>
 
-        <nav className="flex items-center gap-1">
+        <nav className="hidden items-center gap-1 sm:flex">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -80,13 +104,15 @@ export default function Layout() {
         </div>
       </header>
 
-      {/* 内容区（底部为播放条预留空间） */}
-      <main className="min-h-0 flex-1 overflow-y-auto pb-20">
+      {/* 内容区（底部为播放条预留空间；移动端额外预留底部 Tab 高度） */}
+      <main className="min-h-0 flex-1 overflow-y-auto pb-36 sm:pb-20">
         <Outlet />
       </main>
 
-      {/* 底部播放条 */}
+      {/* 底部播放条（移动端位于 Tab 导航上方） */}
       <PlayerBar />
+      {/* 移动端底部 Tab 导航 */}
+      <MobileTabBar />
     </div>
   );
 }

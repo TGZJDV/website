@@ -75,7 +75,7 @@ export default function MePage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
       {/* 用户信息 */}
-      <div className="mb-6 flex items-center gap-4">
+      <div className="mb-6 flex flex-wrap items-center gap-4">
         <div className="relative">
           <Avatar user={user} size="lg" />
           <label
@@ -93,7 +93,7 @@ export default function MePage() {
           <p className="text-sm text-muted">{user.email}</p>
         </div>
         <div className="ml-auto">
-          <Link to="/upload" className="btn-primary">
+          <Link to="/upload" className="btn-primary !px-4">
             上传音乐
           </Link>
         </div>

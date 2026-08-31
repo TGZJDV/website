@@ -20,7 +20,7 @@ export default function SongCard({ song }: SongCardProps) {
       <div className="relative">
         <Cover song={song} title={song.title} className="w-full aspect-square rounded-lg" />
         <button
-          className="absolute bottom-2 right-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white opacity-0 shadow-lg transition group-hover:opacity-100"
+          className="absolute bottom-2 right-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white opacity-100 shadow-lg transition sm:opacity-0 sm:group-hover:opacity-100"
           onClick={(e) => {
             e.stopPropagation();
             playSong(song);

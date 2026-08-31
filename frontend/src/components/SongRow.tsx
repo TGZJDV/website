@@ -35,7 +35,7 @@ export default function SongRow({ song, index, showIndex = true, onRemoved, show
   return (
     <>
       <div
-        className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 transition ${
+        className={`group flex items-center gap-2 rounded-lg px-2 py-2.5 transition sm:gap-3 sm:px-3 ${
           isCurrent ? 'bg-surface3' : 'hover:bg-surface2'
         }`}
       >

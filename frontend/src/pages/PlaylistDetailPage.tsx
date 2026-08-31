@@ -69,14 +69,14 @@ export default function PlaylistDetailPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{playlist.name}</h1>
           <p className="mt-1 text-sm text-muted">
             {playlist.owner_name} 创建 · {songs.length} 首
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {songs.length > 0 && (
             <button className="btn-primary" onClick={() => playQueue(songs)}>
               播放全部

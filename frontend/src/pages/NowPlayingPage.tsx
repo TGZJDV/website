@@ -79,16 +79,16 @@ export default function NowPlayingPage() {
       </header>
 
       {/* 主体：左封面 / 右歌词 */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden px-6 pb-2 md:grid-cols-2 md:px-12">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden px-4 pb-2 md:grid-cols-2 md:px-12">
         {/* 左：封面 + 歌曲信息 */}
         <div className="flex flex-col items-center justify-center gap-5">
           <Cover
             song={current}
             title={current.title}
-            className="h-56 w-56 rounded-2xl shadow-2xl md:h-72 md:w-72 lg:h-80 lg:w-80"
+            className="h-44 w-44 rounded-2xl shadow-2xl md:h-72 md:w-72 lg:h-80 lg:w-80"
           />
           <div className="max-w-sm text-center">
-            <h1 className="truncate text-xl font-bold md:text-2xl">{current.title}</h1>
+            <h1 className="truncate px-2 text-xl font-bold md:text-2xl">{current.title}</h1>
             <p className="mt-1 truncate text-muted">{current.artist || current.uploader_name}</p>
           </div>
         </div>
@@ -131,10 +131,10 @@ export default function NowPlayingPage() {
         </div>
       </div>
 
-      {/* 底部播放控制：控制按钮 | 进度条 | 音量（一行） */}
-      <div className="flex h-24 shrink-0 items-center gap-6 border-t border-surface3 bg-surface/70 px-6 backdrop-blur">
+      {/* 底部播放控制：控制按钮 | 进度条 | 音量（一行，移动端隐藏音量） */}
+      <div className="flex h-24 shrink-0 items-center gap-3 border-t border-surface3 bg-surface/70 px-4 backdrop-blur sm:gap-6 sm:px-6">
         {/* 控制按钮 + 收藏 */}
-        <div className="flex shrink-0 items-center gap-4">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-4">
           <button
             className={`flex items-center justify-center rounded-full p-2 transition ${
               favorited ? 'text-primary' : 'text-muted hover:text-text'
@@ -206,8 +206,8 @@ export default function NowPlayingPage() {
           <span className="text-xs tabular-nums text-muted">{formatDuration(duration)}</span>
         </div>
 
-        {/* 音量 */}
-        <div className="flex shrink-0 items-center gap-2">
+        {/* 音量（桌面端显示） */}
+        <div className="hidden shrink-0 items-center gap-2 sm:flex">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-muted">
             <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z" />
           </svg>

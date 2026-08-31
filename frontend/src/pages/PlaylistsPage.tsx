@@ -96,7 +96,7 @@ export default function PlaylistsPage() {
               <div className="flex items-center justify-between text-xs text-muted">
                 <span>{p.song_count ?? 0} 首</span>
                 <button
-                  className="opacity-0 transition hover:text-red-400 group-hover:opacity-100"
+                  className="transition hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100"
                   onClick={(e) => {
                     e.stopPropagation();
                     remove(p.id, p.name);
