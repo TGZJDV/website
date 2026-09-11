@@ -26,9 +26,29 @@ export async function sendVerificationEmail(
   }
 
   const from = env.EMAIL_FROM || 'CloudMusic <onboarding@resend.dev>';
-  await fetch('https://api.resend.com/emails', {
+  const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({ from, to: [to], subject, text }),
   });
+
+  // 关键：检查响应，否则发失败也会被当作成功（之前就是这里静默忽略）
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    console.error(`[Resend ${res.status}] from=${from} to=${to} :: ${detail}`);
+    throw new Error(describeResendError(res.status, detail));
+  }
+}
+
+/** 把 Resend 的错误翻译成看得懂的提示 */
+function describeResendError(status: number, detail: string): string {
+  const lower = detail.toLowerCase();
+  if (lower.includes('testing emails') || lower.includes('own email address')) {
+    return '邮件服务未配置完成：当前发件人是 Resend 测试地址，只能发往注册 Resend 的邮箱。请在 Resend 验证域名后，把 EMAIL_FROM 改成本域名地址（如 云音乐 <noreply@famousmusic.asia>）。';
+  }
+  if (status === 401) return '邮件服务鉴权失败：RESEND_API_KEY 无效，请重新设置。';
+  if (status === 403) return '邮件服务拒绝发送：域名未验证或权限不足。';
+  if (status === 429) return '发送太频繁了，请稍后再试。';
+  if (status === 422) return `邮件参数被拒绝：${detail.slice(0, 160)}`;
+  return `邮件发送失败(${status})${detail ? '：' + detail.slice(0, 160) : ''}`;
 }

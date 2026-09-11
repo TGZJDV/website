@@ -77,7 +77,11 @@ app.post('/send-code', zValidator('json', sendCodeSchema), async (c) => {
   await c.env.DB.prepare('INSERT INTO email_codes (email, code, purpose, expires_at) VALUES (?, ?, ?, ?)')
     .bind(normalized, code, purpose, expiresAt)
     .run();
-  await sendVerificationEmail(c.env, normalized, code, purpose);
+  try {
+    await sendVerificationEmail(c.env, normalized, code, purpose);
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : '验证码发送失败' }, 502);
+  }
 
   return c.json({ success: true, message: '验证码已发送' });
 });
@@ -167,7 +171,11 @@ app.post('/forgot', zValidator('json', forgotSchema), async (c) => {
   await c.env.DB.prepare("INSERT INTO email_codes (email, code, purpose, expires_at) VALUES (?, ?, 'reset', ?)")
     .bind(normalized, code, expiresAt)
     .run();
-  await sendVerificationEmail(c.env, normalized, code, 'reset');
+  try {
+    await sendVerificationEmail(c.env, normalized, code, 'reset');
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : '验证码发送失败' }, 502);
+  }
 
   return c.json({ success: true, message: '重置验证码已发送' });
 });
