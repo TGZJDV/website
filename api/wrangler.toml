@@ -27,7 +27,7 @@ database_id = "980b11a8-851a-47e7-af1b-eb40f60fd801"
 # 必须用 `wrangler secret put` 设置（[vars] 会覆盖同名远程 secret，切勿写在此处）
 [vars]
 JWT_EXPIRES = "604800"   # 7 天（秒）
-EMAIL_FROM = "CloudMusic <onboarding@resend.dev>"
+EMAIL_FROM = "TGZJDV's Music <noreply@famousmusic.asia>"
 
 # --- 阿里云 OSS 存储 ---
 OSS_BUCKET = "music-file-tgzjdv"
