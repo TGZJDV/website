@@ -70,3 +70,21 @@ export interface GenreCount {
   genre: string;
   count: number;
 }
+
+/** 客户端发布信息（下载页用） */
+export interface ClientRelease {
+  id: string;
+  name: string;
+  subtitle: string;
+  available: boolean;
+  version: string | null;
+  versionCode: number | null;
+  size: number | null;
+  sizeText: string | null;
+  minOs: string | null;
+  publishedAt: string | null;
+  sha256: string | null;
+  note: string | null;
+  /** 安装包文件名（前端拼成 /downloads/<file>），available=false 时为 null */
+  file: string | null;
+}

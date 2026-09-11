@@ -1,0 +1,6 @@
+# Cloudflare Pages 响应头规则
+# 安装包：强制下载 + 正确的 Android 包 MIME
+/downloads/*
+  Content-Type: application/vnd.android.package-archive
+  Content-Disposition: attachment
+  Cache-Control: public, max-age=31536000, immutable

@@ -14,6 +14,7 @@ import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import NowPlayingPage from './pages/NowPlayingPage';
 import AdminPage from './pages/AdminPage';
+import DownloadPage from './pages/DownloadPage';
 import { useAuthStore } from './store/auth';
 
 /** 全局恢复登录状态（所有页面生效，包括 /play 独立页面） */
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot" element={<ForgotPasswordPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/download" element={<DownloadPage />} />
           <Route path="*" element={<HomePage />} />
         </Route>
         {/* 全屏播放界面（独立布局，不显示顶栏/侧边栏/播放条） */}

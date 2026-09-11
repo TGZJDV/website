@@ -5,6 +5,7 @@ node_modules/
 dist/
 .wrangler/
 .dev.vars
+*.tsbuildinfo
 
 # 环境变量
 .env
@@ -17,3 +18,7 @@ Thumbs.db
 
 # 测试工具脚本（含临时密钥，切勿提交）
 testdata/
+
+# 客户端安装包（单个 14+ MB，属构建产物，不入库）
+# 发布新版本：把签好名的 APK 放进 frontend/public/downloads/ 再构建部署
+frontend/public/downloads/*.apk

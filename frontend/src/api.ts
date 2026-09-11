@@ -1,4 +1,4 @@
-import type { Song, SongListResponse, Playlist, Comment, GenreCount, User, AdminUser } from './types';
+import type { Song, SongListResponse, Playlist, Comment, GenreCount, User, AdminUser, ClientRelease } from './types';
 
 // 后端 API 基础地址：可通过环境变量覆盖
 export const API_URL = (import.meta.env.VITE_API_URL as string) || '/api';
@@ -251,3 +251,18 @@ export const adminApi = {
   deleteUser: (id: number) =>
     request<{ success: boolean }>(`/admin/users/${id}`, { method: 'DELETE' }),
 };
+
+// ---------- 客户端下载 ----------
+export const downloadApi = {
+  /** 各平台发布信息（版本/大小/SHA-256/文件名） */
+  releases: () => request<{ releases: ClientRelease[] }>('/download/releases'),
+};
+
+/**
+ * 安装包地址：由 Cloudflare Pages 托管，与前端同源。
+ * 直接用 <a href> 跳转即可，不走后端 API。
+ * （阿里云 OSS 禁止通过默认域名分发 .apk，会返回 ApkDownloadForbidden）
+ */
+export function downloadFileUrl(fileName: string): string {
+  return `/downloads/${fileName}`;
+}

@@ -78,6 +78,16 @@ export default function Layout() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <Link
+            to="/download"
+            title="下载客户端"
+            className="flex items-center gap-1.5 rounded-full border border-surface3 px-3 py-1.5 text-sm text-muted transition hover:border-primary hover:text-primary"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 16l-5-5h3V4h4v7h3l-5 5zM5 18h14v2H5z" />
+            </svg>
+            <span className="hidden sm:inline">下载客户端</span>
+          </Link>
           {initialized && user ? (
             <div className="flex items-center gap-2">
               <Link
