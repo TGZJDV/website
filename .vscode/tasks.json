@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Android: 构建 Debug APK",
+			"type": "shell",
+			"command": "$env:JAVA_HOME='G:\\jdk-17.0.1'; Set-Location 'G:\\website\\android'; .\\gradlew.bat :app:assembleDebug --console=plain",
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

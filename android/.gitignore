@@ -1,0 +1,26 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# 本地环境（含 SDK 路径，不入库）
+local.properties
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+captures/
+
+# 构建日志
+build-log.txt
+
+# 临时调试文件
+ui.xml
+session-dump.txt
+media-session-dump.txt
+
+# 签名密钥（不要提交）
+*.jks
+*.keystore
+keystore.properties
