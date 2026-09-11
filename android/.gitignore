@@ -14,6 +14,8 @@ captures/
 
 # 构建日志
 build-log.txt
+release-log.txt
+*-log.txt
 
 # 临时调试文件
 ui.xml
