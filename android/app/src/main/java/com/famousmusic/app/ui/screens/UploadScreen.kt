@@ -176,7 +176,7 @@ fun UploadScreen(
             Spacer(Modifier.height(8.dp))
             Text("上传成功！", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
-            Text("你的歌曲已经发布到云音乐", color = AppMuted, style = MaterialTheme.typography.bodySmall)
+            Text("你的歌曲已经发布到 TGZJDV's Music", color = AppMuted, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(20.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(onClick = { onDone(id) }, shape = RoundedCornerShape(50)) { Text("查看歌曲") }

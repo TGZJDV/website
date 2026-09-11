@@ -125,7 +125,7 @@ object PlayerManager {
         c.setMediaItems(items, startIndex.coerceIn(0, songs.lastIndex), 0L)
         // 设置播放列表标题（系统媒体控件/原子随身听展示用）
         c.playlistMetadata = MediaMetadata.Builder()
-            .setTitle("云音乐播放列表")
+            .setTitle("TGZJDV's Music 播放列表")
             .setIsBrowsable(false)
             .setIsPlayable(true)
             .build()
@@ -259,7 +259,7 @@ object PlayerManager {
         val metadata = MediaMetadata.Builder()
             .setTitle(song.title)
             .setArtist(song.displayArtist)
-            .setAlbumTitle(song.genre.ifBlank { "云音乐" })
+            .setAlbumTitle(song.genre.ifBlank { "TGZJDV's Music" })
             .setGenre(song.genre)
             .setArtworkUri(ApiClient.coverUrl(song)?.toUri())
             .setIsBrowsable(false)

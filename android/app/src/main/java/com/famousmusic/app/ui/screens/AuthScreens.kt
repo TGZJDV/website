@@ -58,7 +58,7 @@ fun LoginScreen(
             .padding(24.dp),
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("登录云音乐", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("登录 TGZJDV's Music", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(24.dp))
 
         AuthField("邮箱", email, { email = it }, KeyboardType.Email)
@@ -121,7 +121,7 @@ fun RegisterScreen(onDone: () -> Unit, onBack: () -> Unit) {
             .padding(24.dp),
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("注册云音乐", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("注册 TGZJDV's Music", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(24.dp))
 
         AuthField("邮箱", email, { email = it }, KeyboardType.Email)

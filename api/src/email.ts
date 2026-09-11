@@ -12,7 +12,7 @@ export async function sendVerificationEmail(
   code: string,
   purpose: CodePurpose
 ): Promise<void> {
-  const subject = purpose === 'register' ? '云音乐 · 注册验证码' : '云音乐 · 重置密码验证码';
+  const subject = purpose === 'register' ? "TGZJDV's Music · 注册验证码" : "TGZJDV's Music · 重置密码验证码";
   const text =
     purpose === 'register'
       ? `你的注册验证码是：${code}，5 分钟内有效。如果不是你本人操作请忽略。`
@@ -44,7 +44,7 @@ export async function sendVerificationEmail(
 function describeResendError(status: number, detail: string): string {
   const lower = detail.toLowerCase();
   if (lower.includes('testing emails') || lower.includes('own email address')) {
-    return '邮件服务未配置完成：当前发件人是 Resend 测试地址，只能发往注册 Resend 的邮箱。请在 Resend 验证域名后，把 EMAIL_FROM 改成本域名地址（如 云音乐 <noreply@famousmusic.asia>）。';
+    return '邮件服务未配置完成：当前发件人是 Resend 测试地址，只能发往注册 Resend 的邮箱。请在 Resend 验证域名后，把 EMAIL_FROM 改成本域名地址（如 TGZJDV\'s Music <noreply@famousmusic.asia>）。';
   }
   if (status === 401) return '邮件服务鉴权失败：RESEND_API_KEY 无效，请重新设置。';
   if (status === 403) return '邮件服务拒绝发送：域名未验证或权限不足。';

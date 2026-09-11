@@ -98,7 +98,7 @@ fun HomeScreen(
                     )
                     .padding(20.dp),
             ) {
-                Text("欢迎来到云音乐 🎵", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("欢迎来到 TGZJDV's Music 🎵", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(6.dp))
                 Text(
                     "上传你自己的音乐，与大家分享好听的声音",

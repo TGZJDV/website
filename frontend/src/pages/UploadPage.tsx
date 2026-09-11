@@ -163,7 +163,7 @@ export default function UploadPage() {
       <div className="mx-auto max-w-md px-4 py-20 text-center">
         <div className="mb-4 text-5xl">🎉</div>
         <h1 className="mb-2 text-2xl font-bold">上传成功！</h1>
-        <p className="mb-6 text-muted">你的歌曲已经发布到云音乐</p>
+        <p className="mb-6 text-muted">你的歌曲已经发布到 TGZJDV's Music</p>
         <div className="flex justify-center gap-3">
           <button className="btn-primary" onClick={() => navigate(`/song/${success}`)}>
             查看歌曲

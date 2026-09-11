@@ -55,7 +55,7 @@ export default function Layout() {
               <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" />
             </svg>
           </div>
-          <span className="text-lg font-bold">云音乐</span>
+          <span className="text-lg font-bold">TGZJDV's Music</span>
         </Link>
 
         <nav className="hidden items-center gap-1 sm:flex">

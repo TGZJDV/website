@@ -27,7 +27,7 @@ export default function LoginPage() {
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-sm flex-col justify-center px-4">
-      <h1 className="mb-6 text-center text-2xl font-bold">登录云音乐</h1>
+      <h1 className="mb-6 text-center text-2xl font-bold">登录 TGZJDV's Music</h1>
 
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div>

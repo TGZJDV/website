@@ -27,7 +27,7 @@ export default function HomePage() {
       {/* 横幅 */}
       <div className="mb-8 flex items-center justify-between rounded-2xl bg-gradient-to-r from-primary/20 to-accent/20 p-6">
         <div>
-          <h1 className="text-2xl font-bold">欢迎来到云音乐 🎵</h1>
+          <h1 className="text-2xl font-bold">欢迎来到 TGZJDV's Music 🎵</h1>
           <p className="mt-1 text-sm text-muted">上传你自己的音乐，与大家分享好听的声音</p>
           <Link to="/upload" className="btn-primary mt-4">
             立即上传
