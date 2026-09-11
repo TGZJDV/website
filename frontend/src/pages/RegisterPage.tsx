@@ -80,6 +80,9 @@ export default function RegisterPage() {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
+          {email.length > 0 && !emailValid && (
+            <p className="mt-1 text-xs text-red-400">邮箱格式不正确</p>
+          )}
         </div>
         <div>
           <label className="mb-1 block text-sm text-muted">用户名</label>
@@ -132,7 +135,7 @@ export default function RegisterPage() {
               type="button"
               className="btn-ghost shrink-0"
               onClick={sendCode}
-              disabled={sending || countdown > 0 || !emailValid}
+              disabled={sending || countdown > 0}
             >
               {countdown > 0 ? `${countdown}s` : sending ? '发送中…' : '获取验证码'}
             </button>

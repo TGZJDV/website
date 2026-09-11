@@ -76,6 +76,9 @@ export default function ForgotPasswordPage() {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
+          {email.length > 0 && !emailValid && (
+            <p className="mt-1 text-xs text-red-400">邮箱格式不正确</p>
+          )}
         </div>
 
         <div>
@@ -94,7 +97,7 @@ export default function ForgotPasswordPage() {
               type="button"
               className="btn-ghost shrink-0"
               onClick={sendCode}
-              disabled={sending || countdown > 0 || !emailValid}
+              disabled={sending || countdown > 0}
             >
               {countdown > 0 ? `${countdown}s` : sending ? '发送中…' : '获取验证码'}
             </button>
