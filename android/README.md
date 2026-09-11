@@ -1,4 +1,4 @@
-# 云音乐 Android 客户端
+# TGZJDV's Music Android 客户端
 
 基于 [famousmusic.asia](https://music.famousmusic.asia) 的音乐网站做的原生 Android 客户端。
 Kotlin + Jetpack Compose + Media3 (ExoPlayer)，直接调用网站同一套 REST API。
@@ -78,7 +78,7 @@ app/src/main/java/com/famousmusic/app/
 | 播放/暂停/上下曲/进度 | Media3 `MediaSessionService` | ✅ |
 | 元数据（标题/歌手/专辑/流派/封面） | `MediaMetadata` | ✅ `metadata: size=17` |
 | **收藏** | `HeartRating`（user + overall rating） | ✅ **`rating type=1`**（与酷狗一致） |
-| **播放列表** | `player.playlistMetadata` + 队列 | ✅ `queueTitle=云音乐播放列表, size=N` |
+| **播放列表** | `player.playlistMetadata` + 队列 | ✅ `queueTitle=TGZJDV's Music 播放列表, size=N` |
 | **循环模式** | `PlaybackState` actions（`SET_REPEAT_MODE`） | ✅ |
 
 设备侧还需把包名加入音源白名单（否则原子随身听列表里看不到）：
