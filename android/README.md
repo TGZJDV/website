@@ -3,6 +3,44 @@
 基于 [famousmusic.asia](https://music.famousmusic.asia) 的音乐网站做的原生 Android 客户端。
 Kotlin + Jetpack Compose + Media3 (ExoPlayer)，直接调用网站同一套 REST API。
 
+## 发布新版本（Release）
+
+签名密钥 `keystore/famousmusic-release.jks` **不入库**，密码配置在同目录的
+`keystore.properties`（同样不入库，格式见 `keystore.properties.example`）。
+丢了密钥就永远无法更新同包名 App，务必离线备份。
+
+```powershell
+# 构建已签名的 release 包（必须 JDK 17，AGP 8.9 不兼容 JDK 25）
+cd G:\website\android
+$env:JAVA_HOME="G:\jdk-17.0.1"
+.\gradlew.bat :app:assembleRelease
+
+# 校验签名（日志里出现 validateSigningRelease 通过即说明密钥配置正确）
+& "C:\Android\build-tools\37.0.0\apksigner.bat" verify --print-certs `
+  app\build\outputs\apk\release\app-release.apk
+```
+
+发到网站下载页分三步：
+
+```powershell
+# 1) 改 app/build.gradle.kts 的 versionCode / versionName
+# 2) APK 放进前端静态目录（文件名带版本号，便于长缓存）
+Copy-Item app\build\outputs\apk\release\app-release.apk `
+  ..\frontend\public\downloads\TGZJDVsMusic-<版本>.apk
+# 3) 取大小和 SHA-256，填进 api/src/routes/download.ts 的 RELEASES
+(Get-Item ..\frontend\public\downloads\TGZJDVsMusic-<版本>.apk).Length
+(Get-FileHash ..\frontend\public\downloads\TGZJDVsMusic-<版本>.apk -Algorithm SHA256).Hash.ToLower()
+```
+
+最后部署后端 + 构建部署前端即可，下载页无需改代码。
+
+> ⚠️ **为什么 APK 不放 OSS**：阿里云禁止通过 OSS 默认域名分发 `.apk`，会返回
+> `ApkDownloadForbidden`（"please use CNAME instead"）。该限制是**按文件内容嗅探**的
+> —— 改成 `.bin` 后缀 + `application/octet-stream` 依然被拦（APK 本质就是带
+> `AndroidManifest.xml` 的 ZIP）。唯一解法是给桶绑自定义域名，而中国内地区域的
+> 自定义域名需要 ICP 备案。所以安装包由 Cloudflare Pages 同源托管
+> （代价是国内下载速度约 111 KB/s，比 OSS 的 662 KB/s 慢）。
+
 ## 功能
 
 | 模块 | 说明 |
