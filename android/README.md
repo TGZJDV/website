@@ -71,10 +71,40 @@ app/src/main/java/com/famousmusic/app/
 本项目已用 Media3 的 `MediaSessionService` 提供完整的标准实现（`playback/PlaybackService.kt`），
 因此在通知栏、锁屏、蓝牙/车机等系统媒体控制中心都能正常显示与操作。
 
-另外，原子随身听对**音源应用有白名单限制**（这是系统侧配置，不是 App 能自行注册的）。
-如果原子随身听里看不到本应用，需要在设备侧把本应用加入音源白名单（相关做法可参考 MT 论坛
-「蓝厂原子随身听音源白名单添加办法」一类教程，属于需要 root / MT 管理器改系统文件的操作）。
-App 侧能做的兼容已做完：标准 MediaSession + 完整元数据 + 封面 + 后台播放。
+### App 侧已做的（标准 MediaSession，全部实测可见）
+
+| 能力 | 实现 | `dumpsys media_session` 结果 |
+| --- | --- | --- |
+| 播放/暂停/上下曲/进度 | Media3 `MediaSessionService` | ✅ |
+| 元数据（标题/歌手/专辑/流派/封面） | `MediaMetadata` | ✅ `metadata: size=17` |
+| **收藏** | `HeartRating`（user + overall rating） | ✅ **`rating type=1`**（与酷狗一致） |
+| **播放列表** | `player.playlistMetadata` + 队列 | ✅ `queueTitle=云音乐播放列表, size=N` |
+| **循环模式** | `PlaybackState` actions（`SET_REPEAT_MODE`） | ✅ |
+
+设备侧还需把包名加入音源白名单（否则原子随身听列表里看不到）：
+
+```powershell
+adb shell settings get system musicwidget_list_pkg_type_key
+# 期望包含 "com.famousmusic.app"
+```
+
+或参考 MT 论坛「蓝厂原子随身听音源白名单添加办法」一类教程 / 蓝河工具箱。
+
+### 面板里的「歌词 / 收藏 / 循环 / 播放列表」为什么仍显示不支持
+
+这几项属于 **vivo 私有授权体系**，第三方无法通过标准 API 接入。反编译 `com.vivo.musicwidgetmix`
+（`/system/app/VivoMusicWidgetMix/VivoMusicWidgetMix.apk`）可见：
+
+- 存在 `music_app_white_list` / `music_app_white_list_version` / `lock_music_app_white_list`（secure 设置）
+- 相关类与常量：`AuthorityManager`、`AuthorsBean`、`setMusicAppAuthState`、`APP_NOT_AUTH`、`ACTION_START_AUTH`
+- assets 里有 `panel_lyric_loading.json` —— 歌词面板是内置功能，**仅对已授权应用点亮**
+
+> ⚠️ **不要手改 `music_app_white_list`**：它要的是**对象数组**（`[{"...":...}]`），
+> 写成字符串数组 `["pkg"]` 会让原子随身听抛 `Gson JsonSyntaxException` 反复崩溃（实测踩过，需 `settings put secure music_app_white_list '[]'` 回滚）。
+> 条目字段结构未公开，需 vivo 侧授权，不是改设置或改 App 能做到的。
+
+歌词本身在 Android 上**没有任何标准通道**，App 内歌词由自己解析 LRC 展示（全屏播放页已实现）。
+
 
 ## 备注
 
