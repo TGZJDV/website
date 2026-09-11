@@ -45,8 +45,11 @@ import com.famousmusic.app.ui.theme.AppMuted
 import com.famousmusic.app.ui.theme.AppPrimary
 import com.famousmusic.app.ui.theme.AppSurface2
 import com.famousmusic.app.ui.theme.AppText
+import com.famousmusic.app.util.AudioTagReader
 import com.famousmusic.app.util.formatDuration
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private val GENRES = listOf("流行", "摇滚", "民谣", "电子", "嘻哈", "古典", "爵士", "国风", "纯音乐", "其他")
 
@@ -67,33 +70,87 @@ fun UploadScreen(
 
     var audioUri by remember { mutableStateOf<Uri?>(null) }
     var audioName by remember { mutableStateOf("") }
-    var coverUri by remember { mutableStateOf<Uri?>(null) }
+    var coverBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var coverMime by remember { mutableStateOf("image/jpeg") }
     var coverName by remember { mutableStateOf("") }
-    var lyricsUri by remember { mutableStateOf<Uri?>(null) }
+    var lyricsBytes by remember { mutableStateOf<ByteArray?>(null) }
     var lyricsName by remember { mutableStateOf("") }
 
+    var readingTags by remember { mutableStateOf(false) }
+    var tagInfo by remember { mutableStateOf<String?>(null) }
     var uploading by remember { mutableStateOf(false) }
     var progressText by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     var successId by remember { mutableStateOf<Int?>(null) }
 
+    // 选择音频：读取 ID3 / FLAC 标签，自动填充标题、歌手、分类、时长、内嵌封面与歌词
     val pickAudio = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         audioUri = uri
         val name = queryDisplayName(context, uri) ?: "audio.mp3"
         audioName = name
-        duration = readDurationSeconds(context, uri)
         if (title.isBlank()) title = name.substringBeforeLast('.')
+        tagInfo = null
+        readingTags = true
+        scope.launch {
+            val tags = withContext(Dispatchers.IO) { AudioTagReader.read(context, uri, name) }
+            tags.title?.let { title = it }
+            tags.artist?.let { artist = it }
+            tags.durationSec.takeIf { it > 0 }?.let { duration = it }
+            // 分类：只有能对应到站内分类才覆盖
+            tags.genre?.let { g ->
+                GENRES.firstOrNull { it.equals(g, ignoreCase = true) || g.contains(it, ignoreCase = true) }
+                    ?.let { genre = it }
+            }
+            tags.coverBytes?.takeIf { it.isNotEmpty() }?.let {
+                coverBytes = it
+                coverMime = tags.coverMime ?: AudioTagReader.sniffImageMime(it)
+                coverName = "cover." + mimeExt(coverMime)
+            }
+            tags.lyrics?.takeIf { it.isNotBlank() }?.let {
+                lyricsBytes = it.toByteArray(Charsets.UTF_8)
+                lyricsName = "lyrics.lrc"
+            }
+            readingTags = false
+            val found = buildList {
+                if (tags.title != null) add("标题")
+                if (tags.artist != null) add("歌手")
+                if (tags.genre != null) add("分类")
+                if (duration > 0) add("时长")
+                if (coverBytes != null) add("封面")
+                if (lyricsBytes != null) add("歌词")
+            }
+            tagInfo = if (found.isEmpty()) {
+                "未发现内嵌标签，请手动填写"
+            } else {
+                "已自动读取：" + found.joinToString("、")
+            }
+        }
     }
     val pickCover = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        coverUri = uri
-        coverName = queryDisplayName(context, uri) ?: "cover.jpg"
+        scope.launch {
+            val bytes = withContext(Dispatchers.IO) { readBytes(context, uri) }
+            if (bytes == null) {
+                error = "无法读取图片文件"
+                return@launch
+            }
+            coverBytes = bytes
+            coverMime = context.contentResolver.getType(uri) ?: AudioTagReader.sniffImageMime(bytes)
+            coverName = queryDisplayName(context, uri) ?: ("cover." + mimeExt(coverMime))
+        }
     }
     val pickLyrics = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        lyricsUri = uri
-        lyricsName = queryDisplayName(context, uri) ?: "lyrics.lrc"
+        scope.launch {
+            val bytes = withContext(Dispatchers.IO) { readBytes(context, uri) }
+            if (bytes == null) {
+                error = "无法读取歌词文件"
+                return@launch
+            }
+            lyricsBytes = bytes
+            lyricsName = queryDisplayName(context, uri) ?: "lyrics.lrc"
+        }
     }
 
     if (user == null) {
@@ -126,8 +183,10 @@ fun UploadScreen(
                 Button(
                     onClick = {
                         successId = null
-                        title = ""; artist = ""; audioUri = null; coverUri = null; lyricsUri = null
+                        title = ""; artist = ""; audioUri = null
+                        coverBytes = null; lyricsBytes = null
                         duration = 0; audioName = ""; coverName = ""; lyricsName = ""
+                        tagInfo = null
                     },
                     shape = RoundedCornerShape(50),
                     colors = ButtonDefaults.buttonColors(containerColor = AppSurface2),
@@ -153,6 +212,15 @@ fun UploadScreen(
             picked = audioName.isNotBlank(),
             onClick = { pickAudio.launch("audio/*") },
         )
+        if (readingTags) {
+            Spacer(Modifier.height(6.dp))
+            Text("正在读取音频标签…", color = AppMuted, style = MaterialTheme.typography.labelSmall)
+        } else {
+            tagInfo?.let {
+                Spacer(Modifier.height(6.dp))
+                Text(it, color = AppPrimary, style = MaterialTheme.typography.labelSmall)
+            }
+        }
 
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(
@@ -240,9 +308,9 @@ fun UploadScreen(
                     error = null
                     try {
                         progressText = "读取文件…"
-                        val audioBytes = readBytes(context, uri) ?: error("无法读取音频文件")
-                        val coverBytes = coverUri?.let { readBytes(context, it) }
-                        val lyricsBytes = lyricsUri?.let { readBytes(context, it) }
+                        val audioData = withContext(Dispatchers.IO) { readBytes(context, uri) } ?: error("无法读取音频文件")
+                        val coverData = coverBytes
+                        val lyricsData = lyricsBytes
 
                         progressText = "获取上传地址…"
                         val pre = ApiClient.presign(
@@ -258,14 +326,14 @@ fun UploadScreen(
                         )
 
                         progressText = "上传音频中…"
-                        ApiClient.uploadToPresigned(pre.audioUrl, audioBytes, guessAudioMime(audioName))
-                        if (coverBytes != null && pre.coverUrl != null) {
+                        ApiClient.uploadToPresigned(pre.audioUrl, audioData, guessAudioMime(audioName))
+                        if (coverData != null && pre.coverUrl != null) {
                             progressText = "上传封面中…"
-                            ApiClient.uploadToPresigned(pre.coverUrl, coverBytes, guessImageMime(coverName))
+                            ApiClient.uploadToPresigned(pre.coverUrl, coverData, coverMime)
                         }
-                        if (lyricsBytes != null && pre.lyricsUrl != null) {
+                        if (lyricsData != null && pre.lyricsUrl != null) {
                             progressText = "上传歌词中…"
-                            ApiClient.uploadToPresigned(pre.lyricsUrl, lyricsBytes, "text/plain; charset=utf-8")
+                            ApiClient.uploadToPresigned(pre.lyricsUrl, lyricsData, "text/plain; charset=utf-8")
                         }
 
                         progressText = "登记歌曲…"
@@ -336,6 +404,13 @@ private fun readDurationSeconds(context: Context, uri: Uri): Int =
         mmr.release()
         (ms / 1000L).toInt()
     }.getOrDefault(0)
+
+private fun mimeExt(mime: String): String = when {
+    mime.contains("png", ignoreCase = true) -> "png"
+    mime.contains("webp", ignoreCase = true) -> "webp"
+    mime.contains("gif", ignoreCase = true) -> "gif"
+    else -> "jpg"
+}
 
 private fun guessAudioMime(name: String): String = when (name.substringAfterLast('.', "").lowercase()) {
     "mp3" -> "audio/mpeg"
