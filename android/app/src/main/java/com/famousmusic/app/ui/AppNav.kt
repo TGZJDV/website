@@ -212,9 +212,17 @@ private fun BottomNavBar(nav: NavHostController, currentRoute: String?) {
                 onClick = {
                     if (!selected) {
                         nav.navigate(item.route) {
+                            // 点底栏统一回到该 tab 的根页面：先把压在根页面之上的详情页
+                            // 全部弹出，再由 launchSingleTop 复用根页面本身（不新建实例）。
+                            //
+                            // ⚠️ 这里刻意不用 saveState / restoreState：
+                            // 非 inclusive 的 popUpTo 会被 NavController 把保存的状态映射到
+                            // popUpTo 目标（startDestination = home）的 id 上；而我们紧接着
+                            // 又导航回 home，NavController 发现 backStackMap 里已有 home 的键，
+                            // 就会立刻把刚刚弹掉的详情页原样恢复出来 —— 表现就是
+                            // 「点底栏没反应」以及「切到别的 tab 再切回来仍停在详情页」。
+                            popUpTo(nav.graph.startDestinationId) { inclusive = false }
                             launchSingleTop = true
-                            popUpTo(nav.graph.startDestinationId) { saveState = true }
-                            restoreState = true
                         }
                     }
                 },
