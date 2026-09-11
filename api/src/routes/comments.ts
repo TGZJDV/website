@@ -13,7 +13,8 @@ const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 app.get('/song/:songId', async (c) => {
   const songId = Number(c.req.param('songId'));
   const { results } = await c.env.DB.prepare(
-    `SELECT c.id, c.song_id, c.content, c.created_at, u.id AS user_id, u.username, u.title AS title
+    `SELECT c.id, c.song_id, c.content, c.created_at, u.id AS user_id, u.username, u.title AS title,
+            u.avatar_key AS avatar_key
      FROM comments c JOIN users u ON c.user_id = u.id
      WHERE c.song_id = ? ORDER BY c.created_at ASC`
   )
@@ -40,7 +41,8 @@ app.post('/', authRequired, zValidator('json', createSchema), async (c) => {
     .run();
 
   const comment = await c.env.DB.prepare(
-    `SELECT c.id, c.song_id, c.content, c.created_at, u.id AS user_id, u.username, u.title AS title
+    `SELECT c.id, c.song_id, c.content, c.created_at, u.id AS user_id, u.username, u.title AS title,
+            u.avatar_key AS avatar_key
      FROM comments c JOIN users u ON c.user_id = u.id WHERE c.id = ?`
   )
     .bind(Number(res.meta.last_row_id))

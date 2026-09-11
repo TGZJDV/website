@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Cover from '../components/Cover';
+import Avatar from '../components/Avatar';
 import AddToPlaylistModal from '../components/AddToPlaylistModal';
 import { songsApi, commentsApi, streamUrl } from '../api';
 import { useAuthStore } from '../store/auth';
@@ -192,26 +193,32 @@ export default function SongPage() {
               <p className="py-8 text-center text-sm text-muted">还没有评论，来抢沙发～</p>
             ) : (
               comments.map((c) => (
-                <div key={c.id} className="border-b border-surface3 pb-3">
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-sm font-medium text-primary">
-                      {c.username}
-                      {c.title && (
-                        <span className="rounded-full bg-surface3 px-1.5 py-0.5 text-[11px] font-normal text-muted">
-                          {c.title}
-                        </span>
-                      )}
-                    </span>
-                    <span className="flex items-center gap-2 text-xs text-muted">
-                      {formatRelative(c.created_at)}
-                      {user && c.user_id === user.id && (
-                        <button className="hover:text-red-400" onClick={() => deleteComment(c.id)}>
-                          删除
-                        </button>
-                      )}
-                    </span>
+                <div key={c.id} className="flex gap-3 border-b border-surface3 pb-3">
+                  <Avatar
+                    user={{ id: c.user_id, username: c.username, avatar_key: c.avatar_key }}
+                    size="sm"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-sm font-medium text-primary">
+                        {c.username}
+                        {c.title && (
+                          <span className="rounded-full bg-surface3 px-1.5 py-0.5 text-[11px] font-normal text-muted">
+                            {c.title}
+                          </span>
+                        )}
+                      </span>
+                      <span className="flex items-center gap-2 text-xs text-muted">
+                        {formatRelative(c.created_at)}
+                        {user && c.user_id === user.id && (
+                          <button className="hover:text-red-400" onClick={() => deleteComment(c.id)}>
+                            删除
+                          </button>
+                        )}
+                      </span>
+                    </div>
+                    <p className="text-sm leading-relaxed">{c.content}</p>
                   </div>
-                  <p className="text-sm leading-relaxed">{c.content}</p>
                 </div>
               ))
             )}

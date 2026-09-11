@@ -61,6 +61,7 @@ export interface Comment {
   user_id: number;
   username: string;
   title?: string | null;
+  avatar_key?: string | null;
   content: string;
   created_at: string;
 }

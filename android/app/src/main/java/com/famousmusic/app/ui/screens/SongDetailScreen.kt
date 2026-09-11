@@ -54,6 +54,7 @@ import com.famousmusic.app.ui.components.ErrorState
 import com.famousmusic.app.ui.components.LoadingBox
 import com.famousmusic.app.ui.components.SongCover
 import com.famousmusic.app.ui.components.TitleBadge
+import com.famousmusic.app.ui.components.UserAvatar
 import com.famousmusic.app.ui.theme.AppMuted
 import com.famousmusic.app.ui.theme.AppPrimary
 import com.famousmusic.app.ui.theme.AppSurface2
@@ -251,38 +252,47 @@ fun SongDetailScreen(
                     Text("还没有评论，来抢沙发～", color = AppMuted, style = MaterialTheme.typography.bodySmall)
                 } else {
                     comments.forEach { c ->
-                        Column(
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 8.dp),
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(c.username, color = AppPrimary, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
-                                if (!c.title.isNullOrBlank()) {
-                                    Spacer(Modifier.width(4.dp))
-                                    TitleBadge(c.title)
+                            UserAvatar(
+                                userId = c.userId,
+                                username = c.username,
+                                avatarKey = c.avatarKey,
+                                size = 34.dp,
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(c.username, color = AppPrimary, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                                    if (!c.title.isNullOrBlank()) {
+                                        Spacer(Modifier.width(4.dp))
+                                        TitleBadge(c.title)
+                                    }
+                                    Spacer(Modifier.weight(1f))
+                                    Text(formatRelative(c.createdAt), color = AppMuted, style = MaterialTheme.typography.labelSmall)
+                                    if (user != null && user?.id == c.userId) {
+                                        Text(
+                                            "删除",
+                                            color = AppMuted,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier
+                                                .padding(start = 8.dp)
+                                                .clickable {
+                                                    scope.launch {
+                                                        runCatching { ApiClient.deleteComment(c.id) }
+                                                            .onSuccess { comments = comments.filterNot { it.id == c.id } }
+                                                            .onFailure { message = it.message }
+                                                    }
+                                                },
+                                        )
+                                    }
                                 }
-                                Spacer(Modifier.weight(1f))
-                                Text(formatRelative(c.createdAt), color = AppMuted, style = MaterialTheme.typography.labelSmall)
-                                if (user != null && user?.id == c.userId) {
-                                    Text(
-                                        "删除",
-                                        color = AppMuted,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        modifier = Modifier
-                                            .padding(start = 8.dp)
-                                            .clickable {
-                                                scope.launch {
-                                                    runCatching { ApiClient.deleteComment(c.id) }
-                                                        .onSuccess { comments = comments.filterNot { it.id == c.id } }
-                                                        .onFailure { message = it.message }
-                                                }
-                                            },
-                                    )
-                                }
+                                Spacer(Modifier.height(2.dp))
+                                Text(c.content, style = MaterialTheme.typography.bodyMedium)
                             }
-                            Spacer(Modifier.height(2.dp))
-                            Text(c.content, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }

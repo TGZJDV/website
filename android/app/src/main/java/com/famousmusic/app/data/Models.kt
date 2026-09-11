@@ -86,6 +86,7 @@ data class Comment(
     @SerialName("user_id") val userId: Int,
     val username: String,
     val title: String? = null,
+    @SerialName("avatar_key") val avatarKey: String? = null,
     val content: String,
     @SerialName("created_at") val createdAt: String,
 )

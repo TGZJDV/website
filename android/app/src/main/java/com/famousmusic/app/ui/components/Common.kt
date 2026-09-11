@@ -79,9 +79,17 @@ fun SongCover(
 
 /** 用户头像（无头像时显示首字母） */
 @Composable
-fun UserAvatar(user: User?, size: Dp = 40.dp) {
-    val current = user
-    val url = current?.takeIf { it.avatarKey != null }?.let { ApiClient.avatarUrl(it) }
+fun UserAvatar(user: User?, size: Dp = 40.dp) = UserAvatar(
+    userId = user?.id ?: 0,
+    username = user?.username.orEmpty(),
+    avatarKey = user?.avatarKey,
+    size = size,
+)
+
+/** 通用头像（评论等只有 userId / username / avatarKey 的场景） */
+@Composable
+fun UserAvatar(userId: Int, username: String, avatarKey: String?, size: Dp = 40.dp) {
+    val url = if (avatarKey != null && userId > 0) ApiClient.avatarUrl(userId, avatarKey) else null
     Box(
         modifier = Modifier
             .size(size)
@@ -89,16 +97,16 @@ fun UserAvatar(user: User?, size: Dp = 40.dp) {
             .background(AppPrimary),
         contentAlignment = Alignment.Center,
     ) {
-        if (url != null && current != null) {
+        if (url != null) {
             AsyncImage(
                 model = url,
-                contentDescription = current.username,
+                contentDescription = username,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
         } else {
             Text(
-                text = current?.username?.take(1)?.uppercase() ?: "?",
+                text = username.take(1).uppercase().ifBlank { "?" },
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyMedium,
