@@ -24,3 +24,5 @@ media-session-dump.txt
 *.jks
 *.keystore
 keystore.properties
+# keystore 目录整体排除（*.jks 已覆盖，这里是第二道保险）
+keystore/
