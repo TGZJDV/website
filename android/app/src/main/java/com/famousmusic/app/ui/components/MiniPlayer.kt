@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Pause
@@ -27,6 +28,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
@@ -101,18 +103,53 @@ fun MiniPlayer(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                IconButton(
-                    onClick = { PlayerManager.toggle() },
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(AppText, RoundedCornerShape(50)),
-                ) {
-                    Icon(
-                        imageVector = if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                        contentDescription = if (state.isPlaying) "暂停" else "播放",
-                        tint = Color(0xFF121212),
-                        modifier = Modifier.size(22.dp),
-                    )
+                // 播放/暂停按钮：玻璃样式下也是一枚液态玻璃圆钮（经典样式保持原来的白圆）
+                if (glass && backdrop != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .clickable { PlayerManager.toggle() }
+                            .drawBackdrop(
+                                backdrop = backdrop,
+                                shape = { CircleShape },
+                                effects = {
+                                    lens(
+                                        refractionHeight = 10f.dp.toPx(),
+                                        refractionAmount = 12f.dp.toPx(),
+                                        depthEffect = true,
+                                        chromaticAberration = true,
+                                    )
+                                },
+                                highlight = { Highlight.Default },
+                                shadow = { Shadow(alpha = 0.40f) },
+                            )
+                            .drawBehind {
+                                drawCircle(Color.White.copy(alpha = 0.28f))
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                            contentDescription = if (state.isPlaying) "暂停" else "播放",
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                } else {
+                    IconButton(
+                        onClick = { PlayerManager.toggle() },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(AppText, RoundedCornerShape(50)),
+                    ) {
+                        Icon(
+                            imageVector = if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                            contentDescription = if (state.isPlaying) "暂停" else "播放",
+                            tint = Color(0xFF121212),
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
                 }
                 IconButton(onClick = { PlayerManager.next() }) {
                     Icon(Icons.Rounded.SkipNext, contentDescription = "下一首", tint = AppMuted)
