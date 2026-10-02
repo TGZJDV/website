@@ -1,6 +1,7 @@
 package com.famousmusic.app.ui
 
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -120,7 +121,18 @@ fun AppRoot() {
             CompositionLocalProvider(
                 LocalBottomBarInset provides if (glass) 152.dp else 0.dp,
             ) {
-                Box(modifier = Modifier.fillMaxSize().layerBackdrop(backdrop)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .layerBackdrop(backdrop),
+                ) {
+                    // ⚠️ 不透明底必须是采样层**内部的子节点**：
+                    // 写成 .background() 挂在这个 Box 上时，它排 layerBackdrop 之前，
+                    // 不会被录进采样层 —— 层在底栏那个位置就是透明的，
+                    // 于是玻璃画出来的模糊副本是透明的，底下「清晰的原内容」直接透出来，
+                    // 看上去就像「背板没加模糊」。
+                    Box(modifier = Modifier.fillMaxSize().background(AppSurface))
+
                     NavHost(
                         navController = nav,
                         startDestination = Routes.HOME,
