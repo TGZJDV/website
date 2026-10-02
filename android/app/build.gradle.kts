@@ -21,7 +21,7 @@ val keystoreProps = Properties().apply {
 
 android {
     namespace = "com.famousmusic.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.famousmusic.app"
@@ -110,6 +110,9 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.coil.compose)
+
+    // 液态玻璃：真·背景模糊 + 透镜折射 + 通透 + 边缘高光（Apache-2.0）
+    implementation(libs.backdrop)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

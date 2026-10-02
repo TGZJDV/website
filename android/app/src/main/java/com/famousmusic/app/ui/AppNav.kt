@@ -99,14 +99,14 @@ fun AppRoot() {
     // 底栏样式（设置里可切）
     val navStyle by NavStyleStore.style.collectAsState()
 
-    // 液态玻璃要采样「底栏背后的真实内容」：内容层填充整屏，与底栏共用同一份 backdrop
+    // 液态玻璃要采样「底栏背后的真实内容」：内容层铺满全屏，与底栏共用同一份 backdrop
     val glass = !hideBars && navStyle == NavStyle.LIQUID_GLASS
     val backdrop = rememberLayerBackdrop()
 
     Scaffold(
         containerColor = AppSurface,
         bottomBar = {
-            // 经典样式仍走 Scaffold 的 bottomBar（预留空间，行为与改动前完全一致）
+            // 经典样式仍走 Scaffold 的 bottomBar（预留空间，行为与改动前一致）
             if (!hideBars && navStyle == NavStyle.CLASSIC) {
                 Column {
                     MiniPlayer(onOpen = { nav.navigate(Routes.PLAY) })
@@ -116,7 +116,7 @@ fun AppRoot() {
         },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
-            // 内容层：整屏 + 作为玻璃的采样源
+            // 内容层：整屏，并作为玻璃的采样源
             CompositionLocalProvider(
                 LocalBottomBarInset provides if (glass) 152.dp else 0.dp,
             ) {

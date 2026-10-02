@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -37,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -95,16 +97,8 @@ fun navigateToTab(nav: NavHostController, route: String) {
 }
 
 /**
- * 液态玻璃底栏。
- *
- * 用 [drawBackdrop] 对**背后真实内容**做模糊/透镜折射/通透 —— 这是「液态玻璃」与
- * 普通半透明底的根本区别：它采样的是底栏下面正在滚动的内容像素。
- * 因此调用方必须：
- *  1. 在内容层挂 `Modifier.layerBackdrop(backdrop)`（同一份 backdrop 实例）
- *  2. 让内容铺到屏幕底部（不要用 Scaffold 的 bottomBar 预留空间），
- *     并给列表的 contentPadding 加上 [com.famousmusic.app.ui.theme.LocalBottomBarInset]
- *
- * 设计语言取自本机「蓝河工具箱」6.15 的底部导航栏：悬浮胶囊 + 玻璃 + 滑动圆角滑块。
+ * 液态玻璃底栏 —— 参照本机「蓝河工具箱」6.15 的底部导航栏：
+ * 悬浮胶囊 + 半透明玻璃 + 顶部高光描边 + 滑动圆角滑块 + 选中项着主色。
  */
 @Composable
 fun LiquidGlassNavBar(
@@ -114,6 +108,7 @@ fun LiquidGlassNavBar(
 ) {
     val selected = navDestIndex(currentRoute).coerceAtLeast(0)
 
+    // 滑块位置用 spring 跟随，形成「液态」滑动手感
     val thumb by animateFloatAsState(
         targetValue = selected.toFloat(),
         animationSpec = spring(
@@ -136,17 +131,17 @@ fun LiquidGlassNavBar(
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = 14.dp, vertical = 8.dp)
-            .height(64.dp)
-            // ↓↓↓ 真正的液态玻璃：模糊 + 透镜折射 + 通透，采样底栏背后的内容
+            .height(60.dp)
+            // ↓↓↓ 真·液态玻璃：采样「底栏背后的真实内容」做模糊 + 透镜折射 + 通透 + 边缘高光
             .drawBackdrop(
                 backdrop = backdrop,
                 shape = { capsule },
                 effects = {
                     vibrancy()
-                    blur(radius = 12f.dp.toPx())
+                    blur(radius = 14f.dp.toPx())
                     lens(
-                        refractionHeight = 18f.dp.toPx(),
-                        refractionAmount = 18f.dp.toPx(),
+                        refractionHeight = 20f.dp.toPx(),
+                        refractionAmount = 20f.dp.toPx(),
                         depthEffect = true,
                         chromaticAberration = true,
                     )
@@ -158,26 +153,17 @@ fun LiquidGlassNavBar(
                 barWidth = it.width.toFloat()
                 barHeight = it.height.toFloat()
             }
-            // 玻璃之上的内容：淡白提亮 + 选中滑块 + 高光边
             .drawBehind {
-                if (barHeight <= 0f) return@drawBehind
-
-                // ① 极淡的整体提亮（保证在纯黑背景上也有玻璃「存在感」）
-                drawRoundRect(
-                    color = Color.White.copy(alpha = 0.05f),
-                    cornerRadius = CornerRadius(barHeight / 2f),
-                )
-
-                if (itemWidth <= 0f) return@drawBehind
+                if (itemWidth <= 0f || barHeight <= 0f) return@drawBehind
                 val h = barHeight - innerPadPx * 2
                 val x = innerPadPx + itemWidth * thumb
 
-                // ② 冷光晕
+                // ① 冷光晕：模拟光穿过玻璃，压住「脏灰」感
                 drawRoundRect(
                     brush = Brush.horizontalGradient(
                         colors = listOf(
                             AppPrimary.copy(alpha = 0.00f),
-                            AppPrimary.copy(alpha = 0.18f),
+                            AppPrimary.copy(alpha = 0.16f),
                             AppPrimary.copy(alpha = 0.00f),
                         ),
                         startX = x,
@@ -188,12 +174,12 @@ fun LiquidGlassNavBar(
                     cornerRadius = CornerRadius(h / 2f),
                 )
 
-                // ③ 选中滑块：主色玻璃
+                // ② 选中滑块：主色玻璃（比周围亮且有色相，一眼能看出选中）
                 drawRoundRect(
                     brush = Brush.verticalGradient(
                         listOf(
-                            AppPrimary.copy(alpha = 0.46f),
-                            AppPrimary.copy(alpha = 0.24f),
+                            AppPrimary.copy(alpha = 0.42f),
+                            AppPrimary.copy(alpha = 0.22f),
                         ),
                     ),
                     topLeft = Offset(x, innerPadPx),
@@ -201,22 +187,22 @@ fun LiquidGlassNavBar(
                     cornerRadius = CornerRadius(h / 2f),
                 )
 
-                // ④ 滑块亮边 = 玻璃厚度
+                // ③ 滑块描边：亮边 = 玻璃厚度
                 drawRoundRect(
-                    color = Color.White.copy(alpha = 0.42f),
-                    topLeft = Offset(x + 0.7f, innerPadPx + 0.7f),
-                    size = Size(itemWidth - 1.4f, h - 1.4f),
+                    color = Color.White.copy(alpha = 0.38f),
+                    topLeft = Offset(x + 0.6f, innerPadPx + 0.6f),
+                    size = Size(itemWidth - 1.2f, h - 1.2f),
                     cornerRadius = CornerRadius(h / 2f),
-                    style = Stroke(width = 1.4f),
+                    style = Stroke(width = 1.2f),
                 )
 
-                // ⑤ 滑块顶部内高光
+                // ④ 顶部内高光
                 drawRoundRect(
                     brush = Brush.verticalGradient(
-                        listOf(Color.White.copy(alpha = 0.45f), Color.Transparent),
+                        listOf(Color.White.copy(alpha = 0.42f), Color.Transparent),
                     ),
-                    topLeft = Offset(x + h * 0.22f, innerPadPx + 2.5f),
-                    size = Size((itemWidth - h * 0.44f).coerceAtLeast(0f), 2f),
+                    topLeft = Offset(x + h * 0.20f, innerPadPx + 2f),
+                    size = Size((itemWidth - h * 0.40f).coerceAtLeast(0f), 2f),
                     cornerRadius = CornerRadius(1f),
                 )
             },

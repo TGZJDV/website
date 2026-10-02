@@ -1,17 +1,19 @@
 [versions]
-agp = "8.9.2"
-kotlin = "2.1.0"
+# 工具链升级（为接入 io.github.kyant0:backdrop 液态玻璃库）
+agp = "8.13.2"
+kotlin = "2.3.21"
 coreKtx = "1.15.0"
-lifecycle = "2.8.7"
-activityCompose = "1.9.3"
-composeBom = "2025.01.00"
-navigation = "2.8.5"
+lifecycle = "2.9.4"
+activityCompose = "1.11.0"
+composeBom = "2026.02.00"
+navigation = "2.9.6"
 media3 = "1.5.1"
 okhttp = "4.12.0"
-serialization = "1.7.3"
+serialization = "1.9.0"
 coil = "2.7.0"
 datastore = "1.1.1"
-coroutines = "1.9.0"
+coroutines = "1.10.2"
+backdrop = "2.0.0-alpha03"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -38,6 +40,10 @@ okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor",
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+
+# 液态玻璃：真·背景模糊 + 透镜折射 + 通透 + 边缘高光（Apache-2.0，★4000+）
+# https://github.com/Kyant0/AndroidLiquidGlass
+backdrop = { group = "io.github.kyant0", name = "backdrop", version.ref = "backdrop" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
