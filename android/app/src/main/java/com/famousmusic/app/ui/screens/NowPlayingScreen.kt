@@ -72,22 +72,35 @@ fun NowPlayingScreen(onBack: () -> Unit, onLogin: () -> Unit) {
 
     var lyrics by remember { mutableStateOf<List<LrcLine>>(emptyList()) }
     var lyricsLoading by remember { mutableStateOf(false) }
-    var favorited by remember { mutableStateOf(false) }
+    // 收藏状态取自媒体元数据（PlayerManager 会根据元数据 RATING 同步），
+    // 这样 App 内收藏 / 原子随身听收藏 / 切歌 三种情况都能自动一致
+    val favorited = state.favorited
     val listState = rememberLazyListState()
 
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     // 加载歌词
     LaunchedEffect(song?.id) {
-        lyrics = emptyList()
-        favorited = false
-        val id = song?.id ?: return@LaunchedEffect
-        lyricsLoading = true
+        val id = song?.id ?: run {
+            lyrics = emptyList()
+            return@LaunchedEffect
+        }
+        // 先把缓存歌词铺上，避免每次进播放页都空一下
+        val cached = ApiClient.cachedLyrics(id)
+        if (cached != null) {
+            lyrics = LrcParser.parse(cached)
+            lyricsLoading = false
+        } else {
+            lyrics = emptyList()
+            lyricsLoading = true
+        }
         runCatching { ApiClient.lyrics(id) }
             .onSuccess { lyrics = LrcParser.parse(it) }
         lyricsLoading = false
         if (user != null) {
-            runCatching { ApiClient.songDetail(id) }.onSuccess { favorited = it.favorited }
+            // 拉到真实收藏状态后写回元数据（随身听与 App 界面都据此刷新）
+            runCatching { ApiClient.songDetail(id) }
+                .onSuccess { PlayerManager.setFavorite(id, it.favorited) }
         }
     }
 
@@ -232,7 +245,10 @@ fun NowPlayingScreen(onBack: () -> Unit, onLogin: () -> Unit) {
                     scope.launch {
                         runCatching {
                             if (favorited) ApiClient.unfavorite(song.id) else ApiClient.favorite(song.id)
-                        }.onSuccess { favorited = it.favorite }
+                        }.onSuccess {
+                            // 写回媒体元数据 → App 界面与原子随身听同时刷新
+                            PlayerManager.setFavorite(song.id, it.favorite)
+                        }
                     }
                 }) {
                     Icon(

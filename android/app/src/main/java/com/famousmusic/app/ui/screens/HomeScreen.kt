@@ -62,14 +62,18 @@ fun HomeScreen(
     onUpload: () -> Unit,
     onSeeAll: () -> Unit,
 ) {
-    var latest by remember { mutableStateOf<List<Song>>(emptyList()) }
-    var genres by remember { mutableStateOf<List<GenreCount>>(emptyList()) }
-    var loading by remember { mutableStateOf(true) }
+    // 首屏直接用缓存渲染：切回「发现」页不再空白一下
+    val cachedSongs = remember { ApiClient.cachedSongs(limit = 12)?.songs ?: emptyList() }
+    val cachedGenres = remember { ApiClient.cachedGenres()?.genres ?: emptyList() }
+    var latest by remember { mutableStateOf(cachedSongs) }
+    var genres by remember { mutableStateOf(cachedGenres) }
+    var loading by remember { mutableStateOf(cachedSongs.isEmpty() && cachedGenres.isEmpty()) }
     var error by remember { mutableStateOf<String?>(null) }
     var reloadKey by remember { mutableStateOf(0) }
 
     LaunchedEffect(reloadKey) {
-        loading = true
+        // 已有缓存时不显示 loading，后台静默刷新
+        loading = latest.isEmpty() && genres.isEmpty()
         runCatching { ApiClient.listSongs(limit = 12) to ApiClient.genres() }
             .onSuccess { (songsRes, genreRes) ->
                 latest = songsRes.songs

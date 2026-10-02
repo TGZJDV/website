@@ -168,6 +168,8 @@ fun SongDetailScreen(
                             }.onSuccess {
                                 favorited = it.favorite
                                 favoriteCount = it.favoriteCount
+                                // 同步到媒体元数据 → 正播放的歌在原子随身听里也会跟着变
+                                PlayerManager.setFavorite(songId, it.favorite)
                             }.onFailure { message = it.message }
                         }
                     }) {
