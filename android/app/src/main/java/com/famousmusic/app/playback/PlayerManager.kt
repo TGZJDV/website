@@ -38,6 +38,8 @@ data class PlayerUiState(
     val hasPrev: Boolean = false,
     /** Player.REPEAT_MODE_OFF / ALL / ONE */
     val repeatMode: Int = Player.REPEAT_MODE_OFF,
+    /** 当前曲目是否已收藏 —— 取自媒体元数据的 RATING，是全局唯一真源 */
+    val favorited: Boolean = false,
     val connected: Boolean = false,
     val error: String? = null,
 )
@@ -64,6 +66,10 @@ object PlayerManager {
         val index = c.currentMediaItemIndex
         val item = c.currentMediaItem ?: return
         if (item.mediaId.toIntOrNull() != songId) return
+        // 元数据里已经是目标状态就不要再 replaceMediaItem：
+        // 它会让控制器的 timeline 短暂抖动（当前下标瞬跳到 0），UI 会闪出错误的歌
+        val current = (item.mediaMetadata.userRating as? HeartRating)?.isHeart == true
+        if (current == favorited) return
         val newItem = item.buildUpon()
             .setMediaMetadata(
                 item.mediaMetadata.buildUpon()
@@ -73,6 +79,34 @@ object PlayerManager {
             )
             .build()
         c.replaceMediaItem(index, newItem)
+    }
+
+    // ---------- 原子随身听（vivo）协议 ----------
+
+    /** Player 的循环/随机状态 → 随身听 LOOP_MODE：1=列表 2=单曲 3=随机 */
+    private fun vivoLoopModeOf(player: Player): Int = when {
+        player.shuffleModeEnabled -> VivoWidget.LOOP_RANDOM
+        player.repeatMode == Player.REPEAT_MODE_ONE -> VivoWidget.LOOP_SINGLE
+        else -> VivoWidget.LOOP_LIST
+    }
+
+    private fun currentVivoLoopMode(): Int =
+        controller?.let { vivoLoopModeOf(it) } ?: VivoWidget.LOOP_LIST
+
+    /** 循环/随机变化后，把新的 LOOP_MODE 写回当前曲目元数据（随身听会回读） */
+    private fun refreshVivoLoopMode() {
+        val c = controller ?: return
+        val item = c.currentMediaItem ?: return
+        val target = vivoLoopModeOf(c)
+        if (item.mediaMetadata.extras?.getInt(VivoWidget.META_LOOP_MODE, -1) == target) return
+        val extras = Bundle().apply {
+            putAll(item.mediaMetadata.extras ?: Bundle())
+            putInt(VivoWidget.META_LOOP_MODE, target)
+        }
+        val newItem = item.buildUpon()
+            .setMediaMetadata(item.mediaMetadata.buildUpon().setExtras(extras).build())
+            .build()
+        c.replaceMediaItem(c.currentMediaItemIndex, newItem)
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -87,10 +121,16 @@ object PlayerManager {
         override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
             _state.value = _state.value.copy(error = "播放失败：${error.errorCodeName}")
         }
+
+        /** 循环/随机变化时，把新的 LOOP_MODE 写回曲目元数据（供原子随身听回读） */
+        override fun onRepeatModeChanged(repeatMode: Int) = refreshVivoLoopMode()
+
+        override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) = refreshVivoLoopMode()
     }
 
     /** 在 Activity/Application 中调用一次（主线程） */
     fun connect(context: Context) {
+        appContext = context.applicationContext
         if (controller != null || connectFuture != null) return
         val ctx = context.applicationContext
         val token = SessionToken(ctx, ComponentName(ctx, PlaybackService::class.java))
@@ -230,7 +270,18 @@ object PlayerManager {
             _state.value = PlayerUiState()
             return
         }
-        val song = c.currentMediaItem?.let { songOf(it) }
+        val curItem = c.currentMediaItem
+        val song = curItem?.let { songOf(it) }
+
+        // 探针：只在「控制器看到的当前曲目」发生变化时记录，用于排查切歌时 UI 显示错歌
+        val key = "${c.currentMediaItemIndex}|${curItem?.mediaId}|${song?.id}:${song?.title}"
+        if (key != lastLoggedKey) {
+            lastLoggedKey = key
+            probe("syncState idx=${c.currentMediaItemIndex}/${c.mediaItemCount} mediaId=${curItem?.mediaId} song=${song?.id}:${song?.title} extras=${curItem?.mediaMetadata?.extras?.keySet()}")
+        } else if (song == null && curItem != null) {
+            probe("syncState song=null mediaId=${curItem.mediaId} title=${curItem.mediaMetadata.title}")
+        }
+
         val fallbackDuration = (song?.duration ?: 0).toLong() * 1000L
         _state.value = PlayerUiState(
             song = song,
@@ -241,6 +292,9 @@ object PlayerManager {
             hasNext = c.currentMediaItemIndex < c.mediaItemCount - 1,
             hasPrev = c.currentMediaItemIndex > 0,
             repeatMode = c.repeatMode,
+            // 收藏状态只认媒体元数据：这样 App 内点收藏、原子随身听点收藏、
+            // 以及切歌后的真实状态，三者会自动保持一致
+            favorited = (c.currentMediaItem?.mediaMetadata?.userRating as? HeartRating)?.isHeart == true,
             connected = true,
         )
     }
@@ -250,11 +304,28 @@ object PlayerManager {
         return runCatching { AppJson.instance.decodeFromString(Song.serializer(), raw) }.getOrNull()
     }
 
+    // ---------- 临时探针（排查切歌时 UI 显示错歌） ----------
+
+    @Volatile
+    private var appContext: Context? = null
+    private var lastLoggedKey: String? = null
+
+    private fun probe(msg: String) {
+        val ctx = appContext ?: return
+        runCatching {
+            java.io.File(ctx.getExternalFilesDir(null), "probe.log")
+                .appendText("${System.currentTimeMillis()} PM $msg\n")
+        }
+    }
+
     private fun toMediaItem(song: Song): MediaItem {
         val extras = Bundle().apply {
             putString(EXTRA_SONG, AppJson.instance.encodeToString(Song.serializer(), song))
             putString("genre", song.genre)
             putString("uploader", song.uploaderName ?: "")
+            // 原子随身听：声明全量能力位，循环/收藏/播放列表按钮才会点亮
+            putInt(VivoWidget.META_SUPPORT_EVENT, VivoWidget.SUPPORT_ALL)
+            putInt(VivoWidget.META_LOOP_MODE, currentVivoLoopMode())
         }
         val metadata = MediaMetadata.Builder()
             .setTitle(song.title)

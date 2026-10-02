@@ -3,6 +3,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- 均衡器 / 音效（Equalizer、BassBoost）需要 -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -36,6 +38,15 @@
             android:foregroundServiceType="mediaPlayback">
             <intent-filter>
                 <action android:name="androidx.media3.session.MediaSessionService" />
+                <!-- 浏览接口（随身听的「播放列表/收藏列表/下载列表」靠 MediaBrowserCompat.subscribe 拉取） -->
+                <action android:name="androidx.media3.session.MediaLibraryService" />
+                <!-- 原子随身听（vivo）：声明该 action 会让本应用进入随身听的
+                     「自定义插入白名单」(MainApplication.Z)，从而启用 CooperateController，
+                     它才会读取 MediaMetadata 里的 vivomusicmix.media.metadata.support_event -->
+                <action android:name="com.vivo.musicwidgetmix.support.service" />
+                <!-- CooperateController 用 MediaBrowserCompat 绑定，需要旧版浏览器服务接口；
+                     Media3 已内置支持该绑定 -->
+                <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
         </service>
     </application>
