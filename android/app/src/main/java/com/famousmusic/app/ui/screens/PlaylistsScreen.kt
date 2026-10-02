@@ -52,6 +52,7 @@ import com.famousmusic.app.ui.theme.AppPrimary
 import com.famousmusic.app.ui.theme.AppSurface2
 import com.famousmusic.app.ui.theme.AppSurface3
 import com.famousmusic.app.ui.theme.AppText
+import com.famousmusic.app.ui.theme.LocalBottomBarInset
 import kotlinx.coroutines.launch
 
 /** 我的歌单 */
@@ -121,7 +122,14 @@ fun PlaylistsScreen(
             loading -> LoadingBox()
             error != null -> ErrorState(error!!, onRetry = { reloadKey++ })
             playlists.isEmpty() -> EmptyState("还没有歌单，创建一个吧！")
-            else -> LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
+            else -> LazyColumn(
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    top = 8.dp,
+                    end = 16.dp,
+                    bottom = 8.dp + LocalBottomBarInset.current,
+                ),
+            ) {
                 items(playlists, key = { it.id }) { p ->
                     Row(
                         modifier = Modifier

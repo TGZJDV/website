@@ -51,6 +51,7 @@ import com.famousmusic.app.ui.theme.AppMuted
 import com.famousmusic.app.ui.theme.AppPrimary
 import com.famousmusic.app.ui.theme.AppSurface2
 import com.famousmusic.app.ui.theme.AppText
+import com.famousmusic.app.ui.theme.LocalBottomBarInset
 import com.famousmusic.app.util.formatDuration
 import com.famousmusic.app.util.formatRelative
 
@@ -86,7 +87,13 @@ fun HomeScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = 16.dp,
+            // 液态玻璃底栏浮在内容之上，这里让列表能滚到它后面（经典样式下为 0）
+            bottom = 16.dp + LocalBottomBarInset.current,
+        ),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // 横幅

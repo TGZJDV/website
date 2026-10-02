@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Upload
 import androidx.compose.material3.Button
@@ -66,6 +67,8 @@ import com.famousmusic.app.ui.theme.AppPrimary
 import com.famousmusic.app.ui.theme.AppSurface2
 import com.famousmusic.app.ui.theme.AppSurface3
 import com.famousmusic.app.ui.theme.AppText
+import com.famousmusic.app.ui.theme.LocalBottomBarInset
+import com.famousmusic.app.ui.theme.NavStyleStore
 import kotlinx.coroutines.launch
 
 /** 个人中心：资料 + 管理入口 + 我的上传 / 我的收藏 */
@@ -77,8 +80,10 @@ fun MeScreen(
     onSongDetail: (Int) -> Unit,
     onOpenPlaylist: (Int) -> Unit,
     onEqualizer: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     val user by AppSession.user.collectAsState()
+    val navStyle by NavStyleStore.style.collectAsState()
     var uploaded by remember { mutableStateOf<List<Song>>(emptyList()) }
     var favorites by remember { mutableStateOf<List<Song>>(emptyList()) }
     var playlists by remember { mutableStateOf<List<Playlist>>(emptyList()) }
@@ -147,7 +152,7 @@ fun MeScreen(
         return
     }
 
-    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp + LocalBottomBarInset.current)) {
         // 用户信息
         item {
             Row(
@@ -226,6 +231,32 @@ fun MeScreen(
                     Text("均衡器与音效", fontWeight = FontWeight.SemiBold, color = AppText)
                     Text(
                         "超重低音 / 低音增强 / 人声 / 摇滚 等预置",
+                        color = AppMuted,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = AppMuted)
+            }
+        }
+
+        // 外观设置（底部导航栏样式）
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(AppSurface2)
+                    .clickable { onSettings() }
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Rounded.Palette, contentDescription = null, tint = AppPrimary)
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("设置", fontWeight = FontWeight.SemiBold, color = AppText)
+                    Text(
+                        "底部导航栏样式：当前「${navStyle.label}」",
                         color = AppMuted,
                         style = MaterialTheme.typography.bodySmall,
                     )

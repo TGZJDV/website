@@ -42,6 +42,7 @@ import com.famousmusic.app.ui.theme.AppMuted
 import com.famousmusic.app.ui.theme.AppPrimary
 import com.famousmusic.app.ui.theme.AppSurface2
 import com.famousmusic.app.ui.theme.AppText
+import com.famousmusic.app.ui.theme.LocalBottomBarInset
 
 /** 分类页：选择流派查看歌曲 */
 @Composable
@@ -72,7 +73,7 @@ fun GenreScreen(
         loading = false
     }
 
-    LazyColumn(contentPadding = PaddingValues(bottom = 16.dp)) {
+    LazyColumn(contentPadding = PaddingValues(bottom = 16.dp + LocalBottomBarInset.current)) {
         item {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("音乐分类", style = MaterialTheme.typography.titleLarge)

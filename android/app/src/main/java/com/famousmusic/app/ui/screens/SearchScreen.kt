@@ -40,6 +40,7 @@ import com.famousmusic.app.ui.components.SongRow
 import com.famousmusic.app.ui.theme.AppMuted
 import com.famousmusic.app.ui.theme.AppSurface2
 import com.famousmusic.app.ui.theme.AppSurface3
+import com.famousmusic.app.ui.theme.LocalBottomBarInset
 import kotlinx.coroutines.launch
 
 /** 搜索页 */
@@ -101,7 +102,7 @@ fun SearchScreen(onSongDetail: (Int) -> Unit) {
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         )
 
-        LazyColumn(contentPadding = PaddingValues(bottom = 16.dp)) {
+        LazyColumn(contentPadding = PaddingValues(bottom = 16.dp + LocalBottomBarInset.current)) {
             item {
                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
                     Text(
