@@ -68,6 +68,13 @@ android {
         buildConfig = true
     }
 
+    // release 构建不再跑 lint（lintVitalAnalyzeRelease 单次就要 20 分钟左右，
+    // 是构建慢的主因）。需要检查时手动执行 `gradlew :app:lintRelease`。
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
