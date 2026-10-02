@@ -244,7 +244,7 @@ fun AppRoot() {
                 Column(
                     modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
                 ) {
-                    MiniPlayer(onOpen = { nav.navigate(Routes.PLAY) })
+                    MiniPlayer(onOpen = { nav.navigate(Routes.PLAY) }, glass = true, backdrop = backdrop)
                     LiquidGlassNavBar(nav, route, backdrop)
                 }
             }

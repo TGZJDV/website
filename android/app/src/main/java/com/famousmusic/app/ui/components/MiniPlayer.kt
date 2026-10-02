@@ -27,7 +27,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,10 +40,22 @@ import com.famousmusic.app.ui.theme.AppPrimary
 import com.famousmusic.app.ui.theme.AppSurface2
 import com.famousmusic.app.ui.theme.AppSurface3
 import com.famousmusic.app.ui.theme.AppText
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.shadow.Shadow
 
 /** 底部迷你播放条（点击进入全屏播放页） */
 @Composable
-fun MiniPlayer(onOpen: () -> Unit) {
+fun MiniPlayer(
+    onOpen: () -> Unit,
+    /** true = 液态玻璃样式（配合设置里的底栏样式），false = 原有 Material 样式 */
+    glass: Boolean = false,
+    backdrop: Backdrop? = null,
+) {
     val state by PlayerManager.state.collectAsState()
     val song = state.song ?: return
 
@@ -48,7 +63,7 @@ fun MiniPlayer(onOpen: () -> Unit) {
         (state.positionMs.toFloat() / state.durationMs.toFloat()).coerceIn(0f, 1f)
     } else 0f
 
-    Surface(color = AppSurface2, tonalElevation = 4.dp, modifier = Modifier.fillMaxWidth()) {
+    val content: @Composable () -> Unit = {
         Column {
             // 顶部进度细条
             Box(modifier = Modifier.fillMaxWidth().height(2.dp).background(AppSurface3)) {
@@ -103,6 +118,45 @@ fun MiniPlayer(onOpen: () -> Unit) {
                     Icon(Icons.Rounded.SkipNext, contentDescription = "下一首", tint = AppMuted)
                 }
             }
+        }
+    }
+
+    if (glass && backdrop != null) {
+        // 液态玻璃样式：与底栏同一套材质（真模糊 + 透镜折射 + 通透 + 边缘高光）
+        val shape = RoundedCornerShape(22.dp)
+        val radiusPx = with(LocalDensity.current) { 22.dp.toPx() }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 6.dp)
+                .drawBackdrop(
+                    backdrop = backdrop,
+                    shape = { shape },
+                    effects = {
+                        vibrancy()
+                        blur(radius = 14f.dp.toPx())
+                        lens(
+                            refractionHeight = 16f.dp.toPx(),
+                            refractionAmount = 16f.dp.toPx(),
+                            depthEffect = true,
+                            chromaticAberration = true,
+                        )
+                    },
+                    highlight = { Highlight.Default },
+                    shadow = { Shadow(alpha = 0.35f) },
+                )
+                .drawBehind {
+                    drawRoundRect(
+                        color = Color.Black.copy(alpha = 0.28f),
+                        cornerRadius = CornerRadius(radiusPx),
+                    )
+                },
+        ) {
+            content()
+        }
+    } else {
+        Surface(color = AppSurface2, tonalElevation = 4.dp, modifier = Modifier.fillMaxWidth()) {
+            content()
         }
     }
 }

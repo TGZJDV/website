@@ -132,6 +132,9 @@ fun LiquidGlassNavBar(
     val innerPadPx = with(density) { 5.dp.toPx() }
     var barWidth by remember { mutableStateOf(0f) }
     var barHeight by remember { mutableStateOf(0f) }
+    // 图标行**内层**宽度（已扣掉水平 padding）。
+    // 命中判定必须用它来算，不能拿 barWidth 再手工减 padding —— 坐标系容易错位。
+    var rowWidth by remember { mutableStateOf(0f) }
     val itemWidth = if (barWidth > 0f) (barWidth - innerPadPx * 2) / itemCount else 0f
 
     // 水滴位置（拖动跟手 + 松手吸附最近 tab）
@@ -192,13 +195,18 @@ fun LiquidGlassNavBar(
                 .fillMaxSize()
                 .padding(horizontal = 5.dp)
                 .layerBackdrop(tabsBackdrop)
-                .pointerInput(itemWidth, itemCount, selected) {
-                    if (itemWidth <= 0f) return@pointerInput
+                .onSizeChanged { rowWidth = it.width.toFloat() }
+                .pointerInput(itemWidth, itemCount, selected, rowWidth) {
+                    if (itemWidth <= 0f || rowWidth <= 0f) return@pointerInput
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
                         val startX = down.position.x
-                        val startIndex = ((startX - innerPadPx) / itemWidth)
-                            .roundToInt()
+                        // ⚠️ 这里必须用**向下取整**，不能用 roundToInt：
+                        // 按在第 k 个按钮上时 (startX/itemWidth) ∈ [k, k+1)，
+                        // round 会把右半边判成 k+1（按第三个蹦到第四个）；
+                        // 而且坐标已经是行内坐标，不能再手工减 padding。
+                        val startIndex = ((startX / rowWidth) * itemCount)
+                            .toInt()
                             .coerceIn(0, itemCount - 1)
                         // 只有按在**当前页所属的按钮**上才进入拖动模式（按下放大 + 跟手）
                         val dragging = startIndex == selected
