@@ -35,6 +35,9 @@ object ApiClient {
     val BASE: String = BuildConfig.API_BASE
     private val JSON_MEDIA = "application/json; charset=utf-8".toMediaType()
 
+    private val LYRICS_RE = Regex("^/songs/\\d+/lyrics$")
+    private val PLAYLIST_RE = Regex("^/playlists/\\d+$")
+
     private val http: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
@@ -80,8 +83,37 @@ object ApiClient {
         }
     }
 
-    private suspend fun getRaw(path: String): String =
-        exec(Request.Builder().url(BASE + path).get().build())
+    private suspend fun getRaw(path: String): String {
+        val ttl = ttlFor(path)
+        if (ttl <= 0L) return exec(Request.Builder().url(BASE + path).get().build())
+        val now = System.currentTimeMillis()
+        DataCache.get(path)?.let { (text, at) -> if (now - at < ttl) return text }
+        return try {
+            val text = exec(Request.Builder().url(BASE + path).get().build())
+            DataCache.put(path, text, now)
+            text
+        } catch (e: Exception) {
+            // 网络异常时回退到过期缓存：断网也能看到上次的列表/歌词
+            DataCache.get(path)?.first ?: throw e
+        }
+    }
+
+    /** 初始化缓存（Application 启动时调用一次） */
+    fun initCache(context: android.content.Context) = DataCache.init(context)
+
+    /** 各路径的缓存有效期；0 表示不缓存 */
+    private fun ttlFor(path: String): Long = when {
+        LYRICS_RE.matches(path) -> 30 * 60_000L          // 歌词几乎不变
+        path == "/songs/genres" -> 30 * 60_000L          // 分类很少变
+        path.startsWith("/songs/favorites") -> 60_000L
+        path.startsWith("/songs?") -> 5 * 60_000L        // 歌曲列表
+        path.startsWith("/playlists/mine") -> 60_000L
+        PLAYLIST_RE.matches(path) -> 5 * 60_000L
+        path.startsWith("/comments/") -> 60_000L
+        path.startsWith("/admin/") -> 60_000L
+        // /songs/{id} 详情不缓存：其中的 favorited 必须实时，否则收藏状态会错
+        else -> 0L
+    }
 
     private suspend fun sendRaw(method: String, path: String, bodyJson: String? = null): String {
         val builder = Request.Builder().url(BASE + path)
@@ -91,7 +123,8 @@ object ApiClient {
             "PUT" -> builder.put((bodyJson ?: "").toRequestBody(JSON_MEDIA))
             "DELETE" -> if (bodyJson == null) builder.delete() else builder.delete(bodyJson.toRequestBody(JSON_MEDIA))
         }
-        return exec(builder.build())
+        // 任何写操作成功后就清空缓存，避免列表显示过期数据
+        return exec(builder.build()).also { DataCache.clear() }
     }
 
     private suspend fun <T> getDecoded(path: String, d: DeserializationStrategy<T>): T =
@@ -169,15 +202,32 @@ object ApiClient {
 
     // ---------- 歌曲 ----------
 
-    suspend fun listSongs(q: String? = null, genre: String? = null, page: Int = 1, limit: Int = 20): SongListResponse {
+    private fun songsPath(q: String?, genre: String?, page: Int, limit: Int): String {
         val params = buildList {
             if (!q.isNullOrBlank()) add("q=" + urlEncode(q))
             if (!genre.isNullOrBlank()) add("genre=" + urlEncode(genre))
             add("page=$page")
             add("limit=$limit")
         }
-        return getDecoded("/songs?" + params.joinToString("&"), SongListResponse.serializer())
+        return "/songs?" + params.joinToString("&")
     }
+
+    suspend fun listSongs(q: String? = null, genre: String? = null, page: Int = 1, limit: Int = 20): SongListResponse =
+        getDecoded(songsPath(q, genre, page, limit), SongListResponse.serializer())
+
+    // ---------- 首屏秒出：同步读缓存（可能为 null，为 null 时照常走网络） ----------
+
+    private fun <T> cacheDecode(path: String, d: DeserializationStrategy<T>): T? =
+        DataCache.peek(path)?.let { runCatching { AppJson.instance.decodeFromString(d, it) }.getOrNull() }
+
+    fun cachedSongs(q: String? = null, genre: String? = null, page: Int = 1, limit: Int = 20): SongListResponse? =
+        cacheDecode(songsPath(q, genre, page, limit), SongListResponse.serializer())
+
+    fun cachedGenres(): GenreListResponse? = cacheDecode("/songs/genres", GenreListResponse.serializer())
+
+    fun cachedFavorites(): SongListResponse? = cacheDecode("/songs/favorites", SongListResponse.serializer())
+
+    fun cachedLyrics(songId: Int): String? = DataCache.peek("/songs/$songId/lyrics")
 
     suspend fun songDetail(id: Int): SongDetailResponse = getDecoded("/songs/$id", SongDetailResponse.serializer())
 
