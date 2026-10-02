@@ -158,28 +158,12 @@ fun LiquidGlassNavBar(
                 val h = barHeight - innerPadPx * 2
                 val x = innerPadPx + itemWidth * thumb
 
-                // ① 冷光晕：模拟光穿过玻璃，压住「脏灰」感
-                drawRoundRect(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            AppPrimary.copy(alpha = 0.00f),
-                            AppPrimary.copy(alpha = 0.16f),
-                            AppPrimary.copy(alpha = 0.00f),
-                        ),
-                        startX = x,
-                        endX = x + itemWidth,
-                    ),
-                    topLeft = Offset(x, innerPadPx),
-                    size = Size(itemWidth, h),
-                    cornerRadius = CornerRadius(h / 2f),
-                )
-
-                // ② 选中滑块：主色玻璃（比周围亮且有色相，一眼能看出选中）
+                // ① 选中滑块：**磨砂白玻璃**（对齐蓝河工具箱：白滑块 + 蓝色图标）
                 drawRoundRect(
                     brush = Brush.verticalGradient(
-                        listOf(
-                            AppPrimary.copy(alpha = 0.42f),
-                            AppPrimary.copy(alpha = 0.22f),
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.20f),
+                            Color.White.copy(alpha = 0.08f),
                         ),
                     ),
                     topLeft = Offset(x, innerPadPx),
@@ -187,19 +171,19 @@ fun LiquidGlassNavBar(
                     cornerRadius = CornerRadius(h / 2f),
                 )
 
-                // ③ 滑块描边：亮边 = 玻璃厚度
+                // ② 滑块描边：玻璃厚度
                 drawRoundRect(
-                    color = Color.White.copy(alpha = 0.38f),
+                    color = Color.White.copy(alpha = 0.30f),
                     topLeft = Offset(x + 0.6f, innerPadPx + 0.6f),
                     size = Size(itemWidth - 1.2f, h - 1.2f),
                     cornerRadius = CornerRadius(h / 2f),
                     style = Stroke(width = 1.2f),
                 )
 
-                // ④ 顶部内高光
+                // ③ 顶部内高光
                 drawRoundRect(
                     brush = Brush.verticalGradient(
-                        listOf(Color.White.copy(alpha = 0.42f), Color.Transparent),
+                        listOf(Color.White.copy(alpha = 0.38f), Color.Transparent),
                     ),
                     topLeft = Offset(x + h * 0.20f, innerPadPx + 2f),
                     size = Size((itemWidth - h * 0.40f).coerceAtLeast(0f), 2f),
