@@ -4,10 +4,8 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,7 +42,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -70,6 +67,7 @@ import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /** 一个底部导航项 */
@@ -93,15 +91,14 @@ fun navDestIndex(currentRoute: String?): Int = appNavDests.indexOfFirst { dest -
 /**
  * 点底栏统一回到该 tab 的根页面。
  *
- * ⚠️ 刻意不用 saveState / restoreState：
- * 非 inclusive 的 popUpTo 会被 NavController 把保存的状态映射到 popUpTo 目标
- * （startDestination = home）的 id 上；而我们紧接着又导航回 home，NavController
- * 发现 backStackMap 里已有 home 的键，就会立刻把刚弹掉的详情页原样恢复出来 ——
- * 表现就是「点底栏没反应」以及「切到别的 tab 再切回来仍停在详情页」。
+ * ⚠️ 回 HOME 时必须 `inclusive = true`：
+ * `popUpTo(HOME)` 之后栈顶**已经**是 HOME，紧接着再 `navigate(HOME) + launchSingleTop`
+ * 会被 NavController 当成「栈顶已是同一个目的地」而整体忽略 ——
+ * 表现就是「别的 tab 都能切，唯独切不回主页」。
  */
 fun navigateToTab(nav: NavHostController, route: String) {
     nav.navigate(route) {
-        popUpTo(nav.graph.startDestinationId) { inclusive = false }
+        popUpTo(Routes.HOME) { inclusive = (route == Routes.HOME) }
         launchSingleTop = true
     }
 }
@@ -109,14 +106,14 @@ fun navigateToTab(nav: NavHostController, route: String) {
 /**
  * 液态玻璃底栏 —— 参照本机「蓝河工具箱」6.15 的底部导航栏。
  *
- * 结构（与官方 LiquidBottomTabs 同构）：
- *  ① **背板**：整条胶囊，`drawBackdrop` 采样屏幕内容做模糊/折射（保持不动）
- *  ② **图标层**：既是显示层，又用 `layerBackdrop` 暴露给滑块采样
- *  ③ **选中块**：一块**独立的液态玻璃透镜** —— 不是填充色！
- *     - 平时只有 10% 白（几乎透明）→ 所以像水滴而不是塑料板
- *     - 采样「屏幕内容 + 图标层」，`lens()` 让边缘产生真实折射
- *     - 按下/拖动时折射加强、`Highlight` + `Shadow` + `InnerShadow` 浮现、整体放大
- *     - 水平拖动可跨 tab 切换
+ * 结构（注意三块是**兄弟节点**，不是父子）：
+ *  ① **背板**：`drawBackdrop` 玻璃胶囊（单独一层）
+ *  ② **图标层**：显示 + 用 `layerBackdrop` 暴露给水滴做折射源
+ *  ③ **水滴**：独立的液态玻璃透镜，按下放大并可**凸出背板**
+ *
+ * ⚠️ ③ 必须放在 ① 的**外面**：`drawBackdrop` 内部会给自己的内容层设置
+ * `clip = true + shape = 胶囊`（见库源码 DrawBackdropModifier.layoutLayerBlock），
+ * 水滴若是 ① 的子节点，一旦放大凸出胶囊就会被**直接裁掉**。
  */
 @Composable
 fun LiquidGlassNavBar(
@@ -129,7 +126,6 @@ fun LiquidGlassNavBar(
     val density = LocalDensity.current
     val itemCount = appNavDests.size
 
-    // ② 图标层单独一层，供选中块的透镜折射
     val tabsBackdrop = rememberLayerBackdrop()
     val scope = rememberCoroutineScope()
 
@@ -138,7 +134,7 @@ fun LiquidGlassNavBar(
     var barHeight by remember { mutableStateOf(0f) }
     val itemWidth = if (barWidth > 0f) (barWidth - innerPadPx * 2) / itemCount else 0f
 
-    // ③ 选中块的滑动位置（拖动跟手 + 松手回弹到最近 tab）
+    // 水滴位置（拖动跟手 + 松手吸附最近 tab）
     val thumbPos = remember { Animatable(selected.toFloat()) }
     // 按下进度 0..1：驱动折射强度 / 高光 / 内阴影 / 缩放
     val press = remember { Animatable(0f) }
@@ -155,95 +151,103 @@ fun LiquidGlassNavBar(
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = 14.dp, vertical = 8.dp)
-            .height(60.dp)
-            // ① 背板：真·液态玻璃（采样屏幕内容）—— 保持不动
-            .drawBackdrop(
-                backdrop = backdrop,
-                shape = { capsule },
-                effects = {
-                    vibrancy()
-                    blur(radius = 14f.dp.toPx())
-                    lens(
-                        refractionHeight = 20f.dp.toPx(),
-                        refractionAmount = 20f.dp.toPx(),
-                        depthEffect = true,
-                        chromaticAberration = true,
+            .height(60.dp),
+    ) {
+        // ① 背板：真·液态玻璃。单独一层，这样它内部的 clip 只作用于自己。
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .drawBackdrop(
+                    backdrop = backdrop,
+                    shape = { capsule },
+                    effects = {
+                        vibrancy()
+                        blur(radius = 14f.dp.toPx())
+                        lens(
+                            refractionHeight = 20f.dp.toPx(),
+                            refractionAmount = 20f.dp.toPx(),
+                            depthEffect = true,
+                            chromaticAberration = true,
+                        )
+                    },
+                    highlight = { Highlight.Default },
+                    shadow = { Shadow(alpha = 0.35f) },
+                )
+                .onSizeChanged {
+                    barWidth = it.width.toFloat()
+                    barHeight = it.height.toFloat()
+                }
+                .drawBehind {
+                    // 稍微压暗，提升图标可读性
+                    drawRoundRect(
+                        color = Color.Black.copy(alpha = 0.22f),
+                        cornerRadius = CornerRadius(barHeight / 2f),
                     )
                 },
-                highlight = { Highlight.Default },
-                shadow = { Shadow(alpha = 0.35f) },
-                onDrawSurface = null,
-            )
-            .onSizeChanged {
-                barWidth = it.width.toFloat()
-                barHeight = it.height.toFloat()
-            }
-            .drawBehind {
-                // 只做一点压暗（提升图标可读性）。
-                // 不要用高不透明度底色去「统一各页面」——那会把玻璃糊死。
-                // 各页面观感一致靠的是采样层里始终有不透明底（见 AppNav）。
-                drawRoundRect(
-                    color = Color.Black.copy(alpha = 0.22f),
-                    cornerRadius = CornerRadius(barHeight / 2f),
-                )
-            },
-    ) {
-        // ② 图标层：显示 + 作为选中块的采样源
-        //    「点」和「拖」都在这一层统一处理：拖动滑块切换 + 点击直达
+        )
+
+        // ② 图标层：显示 + 作为水滴的折射源；同时统一处理「点」和「拖」
         Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 5.dp)
                 .layerBackdrop(tabsBackdrop)
-                .pointerInput(itemWidth, itemCount) {
-                    if (itemWidth <= 0f) return@pointerInput
-                    detectDragGestures(
-                        onDragStart = {
-                            scope.launch { press.animateTo(1f, spring(0.6f, 400f, 0.001f)) }
-                        },
-                        onDragEnd = {
-                            scope.launch { press.animateTo(0f, spring(0.6f, 400f, 0.001f)) }
-                            val target = thumbPos.value.roundToInt().coerceIn(0, itemCount - 1)
-                            scope.launch {
-                                thumbPos.animateTo(
-                                    target.toFloat(),
-                                    spring(
-                                        dampingRatio = Spring.DampingRatioLowBouncy,
-                                        stiffness = Spring.StiffnessMediumLow,
-                                    ),
-                                )
-                            }
-                            if (target != selected) navigateToTab(nav, appNavDests[target].route)
-                        },
-                        onDragCancel = {
-                            scope.launch { press.animateTo(0f, spring(0.6f, 400f, 0.001f)) }
-                            scope.launch {
-                                thumbPos.animateTo(
-                                    selected.toFloat(),
-                                    spring(
-                                        dampingRatio = Spring.DampingRatioLowBouncy,
-                                        stiffness = Spring.StiffnessMediumLow,
-                                    ),
-                                )
-                            }
-                        },
-                    ) { change, dragAmount ->
-                        change.consume()
-                        scope.launch {
-                            thumbPos.snapTo(
-                                (thumbPos.value + dragAmount.x / itemWidth)
-                                    .coerceIn(0f, (itemCount - 1).toFloat()),
-                            )
-                        }
-                    }
-                }
                 .pointerInput(itemWidth, itemCount, selected) {
                     if (itemWidth <= 0f) return@pointerInput
-                    detectTapGestures { pos ->
-                        val idx = ((pos.x - innerPadPx) / itemWidth)
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val startX = down.position.x
+                        val startIndex = ((startX - innerPadPx) / itemWidth)
                             .roundToInt()
                             .coerceIn(0, itemCount - 1)
-                        if (idx != selected) navigateToTab(nav, appNavDests[idx].route)
+                        // 只有按在**当前页所属的按钮**上才进入拖动模式（按下放大 + 跟手）
+                        val dragging = startIndex == selected
+                        if (dragging) {
+                            scope.launch { press.animateTo(1f, spring(0.6f, 500f, 0.001f)) }
+                        }
+
+                        var totalDx = 0f
+                        var moved = false
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                            if (!change.pressed) break
+                            val dx = change.position.x - change.previousPosition.x
+                            if (dx != 0f && dragging) {
+                                totalDx += dx
+                                if (abs(totalDx) > viewConfiguration.touchSlop) moved = true
+                                scope.launch {
+                                    thumbPos.snapTo(
+                                        (thumbPos.value + dx / itemWidth)
+                                            .coerceIn(0f, (itemCount - 1).toFloat()),
+                                    )
+                                }
+                                change.consume()
+                            }
+                        }
+
+                        if (dragging) {
+                            scope.launch { press.animateTo(0f, spring(0.6f, 500f, 0.001f)) }
+                        }
+
+                        val targetIndex = (if (dragging && moved) {
+                            thumbPos.value.roundToInt()
+                        } else {
+                            startIndex
+                        }).coerceIn(0, itemCount - 1)
+
+                        scope.launch {
+                            thumbPos.animateTo(
+                                targetIndex.toFloat(),
+                                spring(
+                                    dampingRatio = Spring.DampingRatioLowBouncy,
+                                    stiffness = Spring.StiffnessMediumLow,
+                                ),
+                            )
+                        }
+                        if (targetIndex != selected) {
+                            navigateToTab(nav, appNavDests[targetIndex].route)
+                        }
                     }
                 },
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -280,7 +284,7 @@ fun LiquidGlassNavBar(
             }
         }
 
-        // ③ 选中块：独立的液态玻璃透镜（水滴感）
+        // ③ 水滴：独立液态玻璃透镜。**在背板外面**，放大凸出时不会被裁掉。
         if (itemWidth > 0f) {
             val thumbWidthDp = with(density) { itemWidth.toDp() }
             val innerPadDp = with(density) { innerPadPx.toDp() }
@@ -296,37 +300,38 @@ fun LiquidGlassNavBar(
                     .fillMaxHeight()
                     .padding(vertical = innerPadDp)
                     .graphicsLayer {
-                        // 按下变大，且要**超出背板边框**（1.5 倍：50dp → 75dp，比 60dp 的背板还高）
+                        // 按下变大，凸出胶囊边框
                         val s = 1f + 0.50f * press.value
                         scaleX = s
                         scaleY = s
                     }
                     .drawBackdrop(
-                        // 采样「屏幕内容 + 图标层」→ 滑块能折射它下面的图标
                         backdrop = rememberCombinedBackdrop(backdrop, tabsBackdrop),
                         shape = { capsule },
                         effects = {
                             val p = press.value
-                            // 平时也有轻微折射（边缘能看到弯折），按下明显增强
+                            // 只折射不模糊 —— 水滴要的是「透明 + 边缘折射」，模糊会变毛玻璃
                             lens(
-                                refractionHeight = 14f.dp.toPx() * (0.30f + 0.70f * p),
-                                refractionAmount = 18f.dp.toPx() * (0.30f + 0.70f * p),
+                                refractionHeight = 14f.dp.toPx() * (0.35f + 0.65f * p),
+                                refractionAmount = 20f.dp.toPx() * (0.35f + 0.65f * p),
                                 depthEffect = true,
                                 chromaticAberration = true,
                             )
                         },
-                        highlight = { Highlight.Default.copy(alpha = 0.30f + 0.70f * press.value) },
-                        shadow = { Shadow(alpha = 0.15f + 0.55f * press.value) },
+                        // 常驻描边：水滴凸出背板后背后就是普通内容，只靠折射会「隐形」，
+                        // 必须靠高光 / 投影 / 内阴影把轮廓勾出来
+                        highlight = { Highlight.Default.copy(alpha = 0.45f + 0.55f * press.value) },
+                        shadow = { Shadow(alpha = 0.28f + 0.42f * press.value) },
                         innerShadow = {
-                            InnerShadow(radius = 8f.dp * press.value, alpha = press.value)
+                            InnerShadow(
+                                radius = 6.dp + 6.dp * press.value,
+                                alpha = 0.35f + 0.65f * press.value,
+                            )
                         },
                         onDrawSurface = {
-                            // 关键：平时只有 10% 白 —— 这才像「水滴」而不是实心板子
-                            drawRect(
-                                Color.White.copy(alpha = 0.10f),
-                                alpha = 1f - press.value,
-                            )
-                            drawRect(Color.Black.copy(alpha = 0.03f * press.value))
+                            val p = press.value
+                            drawRect(Color.White.copy(alpha = 0.10f), alpha = 1f - p)
+                            drawRect(Color.White.copy(alpha = 0.07f * p))
                         },
                     ),
             )
