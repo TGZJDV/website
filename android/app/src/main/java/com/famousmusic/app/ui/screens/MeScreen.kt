@@ -23,8 +23,10 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AdminPanelSettings
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Upload
 import androidx.compose.material3.Button
@@ -74,6 +76,7 @@ fun MeScreen(
     onAdmin: () -> Unit,
     onSongDetail: (Int) -> Unit,
     onOpenPlaylist: (Int) -> Unit,
+    onEqualizer: () -> Unit,
 ) {
     val user by AppSession.user.collectAsState()
     var uploaded by remember { mutableStateOf<List<Song>>(emptyList()) }
@@ -205,6 +208,32 @@ fun MeScreen(
             }
         }
 
+        // 音效设置
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(AppSurface2)
+                    .clickable { onEqualizer() }
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Rounded.GraphicEq, contentDescription = null, tint = AppPrimary)
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("均衡器与音效", fontWeight = FontWeight.SemiBold, color = AppText)
+                    Text(
+                        "超重低音 / 低音增强 / 人声 / 摇滚 等预置",
+                        color = AppMuted,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = AppMuted)
+            }
+        }
+
         // 我的歌单
         if (playlists.isNotEmpty()) {
             item {
@@ -314,7 +343,11 @@ fun MeScreen(
                             IconButton(onClick = {
                                 scope.launch {
                                     runCatching { ApiClient.unfavorite(song.id) }
-                                        .onSuccess { favorites = favorites.filterNot { it.id == song.id } }
+                                        .onSuccess {
+                                            favorites = favorites.filterNot { it.id == song.id }
+                                            // 同步到媒体元数据 → 原子随身听的爱心也会变
+                                            PlayerManager.setFavorite(song.id, false)
+                                        }
                                         .onFailure { message = it.message }
                                 }
                             }) {

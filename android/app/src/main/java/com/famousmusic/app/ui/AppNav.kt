@@ -31,6 +31,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.famousmusic.app.ui.components.MiniPlayer
 import com.famousmusic.app.ui.screens.AdminScreen
+import com.famousmusic.app.ui.screens.EqualizerScreen
 import com.famousmusic.app.ui.screens.ForgotScreen
 import com.famousmusic.app.ui.screens.GenreScreen
 import com.famousmusic.app.ui.screens.HomeScreen
@@ -64,6 +65,7 @@ object Routes {
     const val ADMIN = "admin"
     const val PLAYLIST_DETAIL = "playlist/{id}"
     const val SONG_DETAIL = "song/{id}"
+    const val EQUALIZER = "equalizer"
 
     const val GENRES_WITH_ARG = "genres?genre={genre}"
 
@@ -143,7 +145,11 @@ fun AppRoot() {
                         onAdmin = { nav.navigate(Routes.ADMIN) },
                         onSongDetail = { nav.navigate(Routes.song(it)) },
                         onOpenPlaylist = { nav.navigate(Routes.playlist(it)) },
+                        onEqualizer = { nav.navigate(Routes.EQUALIZER) },
                     )
+                }
+                composable(Routes.EQUALIZER) {
+                    EqualizerScreen(onBack = { nav.popBackStack() })
                 }
                 composable(
                     route = Routes.SONG_DETAIL,
