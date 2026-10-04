@@ -138,7 +138,7 @@ fun HomeScreen(
                         items(genres) { g ->
                             Row(
                                 modifier = Modifier
-                                    .glassPanel(RoundedCornerShape(50))
+                                    .glassPanel(RoundedCornerShape(percent = 50))
                                     .clickable { onGenreClick(g.genre) }
                                     .padding(horizontal = 14.dp, vertical = 7.dp),
                                 verticalAlignment = Alignment.CenterVertically,
