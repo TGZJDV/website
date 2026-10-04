@@ -28,3 +28,9 @@ media-session-dump.txt
 keystore.properties
 # keystore 目录整体排除（*.jks 已覆盖，这里是第二道保险）
 keystore/
+
+# UAPI 密钥（uapis.cn）—— 绝不入库；也可以在 App 内「设置 → 自定义背景」填写
+uapi.properties
+
+# 构建日志
+build-quiet.log

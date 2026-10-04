@@ -97,6 +97,10 @@ fun SettingsScreen(onBack: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = AppMuted,
             )
+
+            Spacer(Modifier.height(20.dp))
+            BackgroundSettingSection()
+
             Spacer(Modifier.height(32.dp))
         }
     }

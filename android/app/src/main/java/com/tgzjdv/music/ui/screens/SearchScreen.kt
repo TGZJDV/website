@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.tgzjdv.music.data.ApiClient
@@ -37,6 +38,7 @@ import com.tgzjdv.music.ui.components.EmptyState
 import com.tgzjdv.music.ui.components.ErrorState
 import com.tgzjdv.music.ui.components.LoadingBox
 import com.tgzjdv.music.ui.components.SongRow
+import com.tgzjdv.music.ui.components.glassPanel
 import com.tgzjdv.music.ui.theme.AppMuted
 import com.tgzjdv.music.ui.theme.AppSurface2
 import com.tgzjdv.music.ui.theme.AppSurface3
@@ -83,12 +85,13 @@ fun SearchScreen(onSongDetail: (Int) -> Unit) {
             onValueChange = { query = it },
             placeholder = { Text("输入歌名或歌手…", color = AppMuted) },
             singleLine = true,
-            shape = RoundedCornerShape(50),
+            shape = RoundedCornerShape(percent = 50),
+            // 容器与描边都透明：玻璃由 glassPanel 提供，避免两层底色互相盖住
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = AppSurface2,
-                unfocusedContainerColor = AppSurface2,
-                focusedBorderColor = AppSurface3,
-                unfocusedBorderColor = AppSurface3,
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
             ),
             trailingIcon = {
                 IconButton(onClick = { search(query) }) {
@@ -99,7 +102,9 @@ fun SearchScreen(onSongDetail: (Int) -> Unit) {
             keyboardActions = KeyboardActions(onSearch = { search(query) }),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                // 搜索框也用液态玻璃（经典样式下自动退回原来的深色底）
+                .glassPanel(RoundedCornerShape(percent = 50)),
         )
 
         LazyColumn(contentPadding = PaddingValues(bottom = 16.dp + LocalBottomBarInset.current)) {

@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -63,6 +64,9 @@ import com.tgzjdv.music.ui.theme.NavStyle
 import com.tgzjdv.music.ui.theme.NavStyleStore
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.tgzjdv.music.data.BackgroundStore
+import com.tgzjdv.music.data.BgMode
+import coil.compose.AsyncImage
 
 /** 路由表 */
 object Routes {
@@ -103,6 +107,8 @@ fun AppRoot() {
 
     // 底栏样式（设置里可切）
     val navStyle by NavStyleStore.style.collectAsState()
+    // 自定义背景（相册图片 / UAPI 随机图片）
+    val bgState by BackgroundStore.state.collectAsState()
 
     // 液态玻璃要采样「底栏背后的真实内容」：内容层铺满全屏，与底栏共用同一份 backdrop
     val glass = !hideBars && navStyle == NavStyle.LIQUID_GLASS
@@ -134,6 +140,40 @@ fun AppRoot() {
                     .layerBackdrop(bgBackdrop),
             ) {
                 Box(modifier = Modifier.fillMaxSize().background(AppSurface))
+
+                // 自定义背景（用户从相册选 / UAPI 随机图片）。
+                // ⚠️ 必须画在采样层**内部** —— 这样页面里的液态玻璃面板能折射它，
+                //    玻璃才有「有内容可折射」的观感；画在外面的话玻璃只会采到纯色。
+                when (bgState.mode) {
+                    BgMode.LOCAL -> {
+                        val uri = bgState.localUri
+                        if (!uri.isNullOrBlank()) {
+                            AsyncImage(
+                                model = uri,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                    }
+                    BgMode.UAPI -> {
+                        val f = BackgroundStore.uapiFile()
+                        if (f != null && f.exists()) {
+                            AsyncImage(
+                                model = f,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                    }
+                    BgMode.NONE -> Unit
+                }
+                // 压暗，保证文字与图标在任何背景上都读得清
+                if (bgState.mode != BgMode.NONE) {
+                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.58f)))
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

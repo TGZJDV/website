@@ -251,13 +251,12 @@ fun NowPlayingScreen(
             }
         }
 
-        // 进度条 + 控制按钮：整块做成液态玻璃面板
+        // ① 进度条背板（独立的一块液态玻璃）
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 10.dp)
-                .glassPanel(RoundedCornerShape(26.dp))
-                .padding(horizontal = 6.dp),
+                .glassPanel(RoundedCornerShape(20.dp))
+                .padding(horizontal = 6.dp, vertical = 2.dp),
         ) {
             Slider(
                 value = progressValue,
@@ -274,19 +273,25 @@ fun NowPlayingScreen(
                 ),
             )
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(formatDurationMs(progressValue.toLong()), color = AppMuted, style = MaterialTheme.typography.labelSmall)
                 Text(formatDurationMs(state.durationMs), color = AppMuted, style = MaterialTheme.typography.labelSmall)
             }
+        }
 
-            // 控制按钮（进度条下方，移动端布局）
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+        Spacer(Modifier.height(8.dp))
+
+        // ② 控制按钮（与进度条背板分离的另一块液态玻璃）
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp)
+                .glassPanel(RoundedCornerShape(26.dp)),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
                 IconButton(onClick = {
                     if (user == null) {
                         onLogin()
@@ -340,7 +345,6 @@ fun NowPlayingScreen(
                         tint = if (state.repeatMode == androidx.media3.common.Player.REPEAT_MODE_OFF) AppMuted else AppPrimary,
                     )
                 }
-            }
             }
         }
         }

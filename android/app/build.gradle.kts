@@ -19,6 +19,18 @@ val keystoreProps = Properties().apply {
     }
 }
 
+// UAPI（uapis.cn）密钥：android/uapi.properties（已 gitignore），键名 UAPI_KEY。
+// 也可以不建这个文件 —— 应用内「设置 → 自定义背景」里直接填，存 SharedPreferences。
+// 两种方式都不把密钥写进代码，也不拼进 URL（只放 Authorization 头）。
+val uapiPropsFile = rootProject.file("uapi.properties")
+val uapiKey: String = if (uapiPropsFile.exists()) {
+    Properties().apply {
+        load(uapiPropsFile.readText().removePrefix("\uFEFF").reader())
+    }.getProperty("UAPI_KEY").orEmpty()
+} else {
+    ""
+}
+
 android {
     namespace = "com.tgzjdv.music"
     compileSdk = 36
@@ -33,6 +45,8 @@ android {
         // 后端 API 地址（可通过 buildConfig 覆盖）
         buildConfigField("String", "API_BASE", "\"https://api.famousmusic.asia/api\"")
         buildConfigField("String", "WEB_BASE", "\"https://music.famousmusic.asia\"")
+        // UAPI 密钥默认值（空 = 由应用内设置提供）。绝不硬编码真实密钥。
+        buildConfigField("String", "UAPI_KEY", "\"$uapiKey\"")
 
         vectorDrawables { useSupportLibrary = true }
     }
