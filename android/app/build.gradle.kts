@@ -20,11 +20,11 @@ val keystoreProps = Properties().apply {
 }
 
 android {
-    namespace = "com.famousmusic.app"
+    namespace = "com.tgzjdv.music"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.famousmusic.app"
+        applicationId = "com.tgzjdv.music"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

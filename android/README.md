@@ -123,7 +123,7 @@ app/src/main/java/com/famousmusic/app/
 
 ```powershell
 adb shell settings get system musicwidget_list_pkg_type_key
-# 期望包含 "com.famousmusic.app"
+# 期望包含 "com.tgzjdv.music"
 ```
 
 或参考 MT 论坛「蓝厂原子随身听音源白名单添加办法」一类教程 / 蓝河工具箱。
