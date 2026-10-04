@@ -34,6 +34,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -43,13 +44,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.tgzjdv.music.data.ApiClient
 import com.tgzjdv.music.playback.LrcLine
 import com.tgzjdv.music.playback.LrcParser
@@ -57,6 +63,7 @@ import com.tgzjdv.music.playback.PlayerManager
 import com.tgzjdv.music.session.AppSession
 import com.tgzjdv.music.ui.components.SongCover
 import com.tgzjdv.music.ui.components.glassCircle
+import com.tgzjdv.music.ui.components.glassPanel
 import com.tgzjdv.music.ui.theme.AppMuted
 import com.tgzjdv.music.ui.theme.AppPrimary
 import com.tgzjdv.music.ui.theme.AppSurface
@@ -65,6 +72,7 @@ import com.tgzjdv.music.ui.theme.AppSurface3
 import com.tgzjdv.music.ui.theme.AppText
 import com.tgzjdv.music.ui.theme.LocalGlassBackdrop
 import com.tgzjdv.music.util.formatDurationMs
+import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 
 /** 全屏播放页：封面 + LRC 歌词同步 + 控制 */
@@ -138,16 +146,40 @@ fun NowPlayingScreen(
     val durationMs = state.durationMs.coerceAtLeast(1L)
     val progressValue = if (dragging) dragValue else state.positionMs.toFloat().coerceIn(0f, durationMs.toFloat())
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(AppSurface2, com.tgzjdv.music.ui.theme.AppSurface, androidx.compose.ui.graphics.Color.Black)
-                )
+    // 本页自己的玻璃采样层。⚠️ 必须在玻璃元素**外面**，否则自引用成环 → HWUI 栈溢出闪退
+    val pageBackdrop = rememberLayerBackdrop()
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // ① 背景层：渐变 + 放大模糊的封面 —— 页内玻璃控件折射它，玻璃才有「液态」的观感
+        Box(modifier = Modifier.fillMaxSize().layerBackdrop(pageBackdrop)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(listOf(AppSurface2, AppSurface, Color.Black)),
+                    ),
             )
-            .padding(horizontal = 16.dp),
-    ) {
+            val bgCover = ApiClient.coverUrl(song)
+            if (bgCover != null) {
+                AsyncImage(
+                    model = bgCover,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .blur(80.dp)
+                        .alpha(0.45f),
+                )
+            }
+        }
+
+        // ② 前景：文字 + 歌词 + 控件（玻璃元素采 ①）
+        CompositionLocalProvider(LocalGlassBackdrop provides pageBackdrop) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+            ) {
         // 顶栏
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
@@ -219,8 +251,14 @@ fun NowPlayingScreen(
             }
         }
 
-        // 进度条
-        Column(modifier = Modifier.fillMaxWidth()) {
+        // 进度条 + 控制按钮：整块做成液态玻璃面板
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp)
+                .glassPanel(RoundedCornerShape(26.dp))
+                .padding(horizontal = 6.dp),
+        ) {
             Slider(
                 value = progressValue,
                 onValueChange = { dragging = true; dragValue = it },
@@ -303,6 +341,8 @@ fun NowPlayingScreen(
                     )
                 }
             }
+            }
+        }
         }
     }
 }

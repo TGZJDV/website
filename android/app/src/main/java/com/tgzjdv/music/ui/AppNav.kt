@@ -20,6 +20,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -104,6 +107,10 @@ fun AppRoot() {
     // 液态玻璃要采样「底栏背后的真实内容」：内容层铺满全屏，与底栏共用同一份 backdrop
     val glass = !hideBars && navStyle == NavStyle.LIQUID_GLASS
     val backdrop = rememberLayerBackdrop()
+    // ⚠️ 页面**内部**的面板（卡片/按钮）必须采样另一份「背景层」：
+    // 它们位于内容层内部，若采样内容层＝在自己的采样层里画自己 → HWUI 栈溢出闪退。
+    // 这一份只画背景，是内容层的**兄弟节点**，所以安全。
+    val bgBackdrop = rememberLayerBackdrop()
 
     Scaffold(
         containerColor = AppSurface,
@@ -118,11 +125,36 @@ fun AppRoot() {
         },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
-            // 内容层：整屏，并作为玻璃的采样源
+            // ⓪ 背景采样层：只画背景，**不含任何内容/玻璃元素**。
+            //    页面内部的卡片与按钮采它 → 真玻璃且绝不成环。
+            //    （加一点微弱的径向光，否则纯色背景下玻璃折射看不出来）
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .layerBackdrop(bgBackdrop),
+            ) {
+                Box(modifier = Modifier.fillMaxSize().background(AppSurface))
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.055f),
+                                    Color.Transparent,
+                                ),
+                                center = Offset(0.30f * 1080f, 0.18f * 2400f),
+                                radius = 1500f,
+                            ),
+                        ),
+                )
+            }
+
+            // 内容层：整屏，并作为底栏/迷你播放条的玻璃采样源
             CompositionLocalProvider(
                 LocalBottomBarInset provides if (glass) 152.dp else 0.dp,
-                // 各页面里的卡片/面板靠这个变成玻璃（经典样式下为 null → 走原来的实心底色）
-                LocalGlassBackdrop provides if (glass) backdrop else null,
+                // 页面内部的卡片/面板采「背景层」（安全）；底栏等浮层用另一份（见下）
+                LocalGlassBackdrop provides if (glass) bgBackdrop else null,
             ) {
                 Box(
                     modifier = Modifier
