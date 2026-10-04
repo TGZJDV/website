@@ -55,6 +55,7 @@ import com.tgzjdv.music.ui.theme.AppSurface2
 import com.tgzjdv.music.ui.theme.AppSurface3
 import com.tgzjdv.music.ui.theme.AppText
 import com.tgzjdv.music.ui.theme.LocalBottomBarInset
+import com.tgzjdv.music.ui.theme.LocalGlassBackdrop
 import com.tgzjdv.music.ui.theme.NavStyle
 import com.tgzjdv.music.ui.theme.NavStyleStore
 import com.kyant.backdrop.backdrops.layerBackdrop
@@ -120,6 +121,8 @@ fun AppRoot() {
             // 内容层：整屏，并作为玻璃的采样源
             CompositionLocalProvider(
                 LocalBottomBarInset provides if (glass) 152.dp else 0.dp,
+                // 各页面里的卡片/面板靠这个变成玻璃（经典样式下为 null → 走原来的实心底色）
+                LocalGlassBackdrop provides if (glass) backdrop else null,
             ) {
                 Box(
                     modifier = Modifier
@@ -220,6 +223,8 @@ fun AppRoot() {
                     NowPlayingScreen(
                         onBack = { nav.popBackStack() },
                         onLogin = { nav.navigate(Routes.LOGIN) },
+                        // 播放页顶栏的音效按钮 → 均衡器页
+                        onEqualizer = { nav.navigate(Routes.EQUALIZER) },
                     )
                 }
                 composable(Routes.LOGIN) {

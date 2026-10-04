@@ -46,6 +46,7 @@ import com.tgzjdv.music.ui.components.ErrorState
 import com.tgzjdv.music.ui.components.LoadingBox
 import com.tgzjdv.music.ui.components.SectionTitle
 import com.tgzjdv.music.ui.components.SongCover
+import com.tgzjdv.music.ui.components.glassPanel
 import com.tgzjdv.music.ui.theme.AppAccent
 import com.tgzjdv.music.ui.theme.AppMuted
 import com.tgzjdv.music.ui.theme.AppPrimary
@@ -137,8 +138,7 @@ fun HomeScreen(
                         items(genres) { g ->
                             Row(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(50))
-                                    .background(AppSurface2)
+                                    .glassPanel(RoundedCornerShape(50))
                                     .clickable { onGenreClick(g.genre) }
                                     .padding(horizontal = 14.dp, vertical = 7.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -214,8 +214,7 @@ fun HomeScreen(
 fun SongGridCard(song: Song, onPlay: () -> Unit, onDetail: () -> Unit) {
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(AppSurface2)
+            .glassPanel(RoundedCornerShape(12.dp))
             .clickable(onClick = onPlay)
             .padding(8.dp),
     ) {

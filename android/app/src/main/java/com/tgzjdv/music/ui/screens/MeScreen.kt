@@ -61,6 +61,7 @@ import com.tgzjdv.music.ui.components.LoadingBox
 import com.tgzjdv.music.ui.components.SongRow
 import com.tgzjdv.music.ui.components.TitleBadge
 import com.tgzjdv.music.ui.components.UserAvatar
+import com.tgzjdv.music.ui.components.glassPanel
 import com.tgzjdv.music.ui.theme.AppAccent
 import com.tgzjdv.music.ui.theme.AppMuted
 import com.tgzjdv.music.ui.theme.AppPrimary
@@ -219,8 +220,7 @@ fun MeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(AppSurface2)
+                    .glassPanel(RoundedCornerShape(14.dp))
                     .clickable { onEqualizer() }
                     .padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -245,8 +245,7 @@ fun MeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(AppSurface2)
+                    .glassPanel(RoundedCornerShape(14.dp))
                     .clickable { onSettings() }
                     .padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -281,8 +280,7 @@ fun MeScreen(
                             Row(
                                 modifier = Modifier
                                     .padding(end = 10.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(AppSurface2)
+                                    .glassPanel(RoundedCornerShape(12.dp))
                                     .clickable { onOpenPlaylist(p.id) }
                                     .padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically,

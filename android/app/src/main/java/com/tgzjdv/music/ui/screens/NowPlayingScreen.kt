@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -44,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,18 +56,24 @@ import com.tgzjdv.music.playback.LrcParser
 import com.tgzjdv.music.playback.PlayerManager
 import com.tgzjdv.music.session.AppSession
 import com.tgzjdv.music.ui.components.SongCover
+import com.tgzjdv.music.ui.components.glassCircle
 import com.tgzjdv.music.ui.theme.AppMuted
 import com.tgzjdv.music.ui.theme.AppPrimary
 import com.tgzjdv.music.ui.theme.AppSurface
 import com.tgzjdv.music.ui.theme.AppSurface2
 import com.tgzjdv.music.ui.theme.AppSurface3
 import com.tgzjdv.music.ui.theme.AppText
+import com.tgzjdv.music.ui.theme.LocalGlassBackdrop
 import com.tgzjdv.music.util.formatDurationMs
 import kotlinx.coroutines.launch
 
 /** 全屏播放页：封面 + LRC 歌词同步 + 控制 */
 @Composable
-fun NowPlayingScreen(onBack: () -> Unit, onLogin: () -> Unit) {
+fun NowPlayingScreen(
+    onBack: () -> Unit,
+    onLogin: () -> Unit,
+    onEqualizer: () -> Unit = {},
+) {
     val state by PlayerManager.state.collectAsState()
     val song = state.song
     val user by AppSession.user.collectAsState()
@@ -151,6 +159,10 @@ fun NowPlayingScreen(onBack: () -> Unit, onLogin: () -> Unit) {
             Text("正在播放", color = AppMuted, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.weight(1f))
             Text(song.genre, color = AppMuted, style = MaterialTheme.typography.bodySmall)
+            // 音效 / 均衡器入口
+            IconButton(onClick = onEqualizer) {
+                Icon(Icons.Rounded.GraphicEq, contentDescription = "均衡器与音效", tint = AppMuted)
+            }
         }
 
         // 封面 + 信息
@@ -263,15 +275,15 @@ fun NowPlayingScreen(onBack: () -> Unit, onLogin: () -> Unit) {
                 Box(
                     modifier = Modifier
                         .size(62.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(AppText)
+                        // 经典样式 = 原来的白色实心圆；玻璃样式 = 圆形玻璃透镜
+                        .glassCircle(fallback = AppText)
                         .clickable { PlayerManager.toggle() },
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                         contentDescription = if (state.isPlaying) "暂停" else "播放",
-                        tint = AppSurface,
+                        tint = if (LocalGlassBackdrop.current != null) Color.White else AppSurface,
                         modifier = Modifier.size(34.dp),
                     )
                 }

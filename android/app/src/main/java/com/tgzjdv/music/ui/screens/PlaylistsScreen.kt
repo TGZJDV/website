@@ -47,6 +47,7 @@ import com.tgzjdv.music.session.AppSession
 import com.tgzjdv.music.ui.components.EmptyState
 import com.tgzjdv.music.ui.components.ErrorState
 import com.tgzjdv.music.ui.components.LoadingBox
+import com.tgzjdv.music.ui.components.glassPanel
 import com.tgzjdv.music.ui.theme.AppMuted
 import com.tgzjdv.music.ui.theme.AppPrimary
 import com.tgzjdv.music.ui.theme.AppSurface2
@@ -134,8 +135,7 @@ fun PlaylistsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(AppSurface2)
+                            .glassPanel(RoundedCornerShape(12.dp))
                             .clickable { onOpenPlaylist(p.id) }
                             .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
