@@ -119,7 +119,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 color = AppText,
             )
             Text(
-                "越大越通透（压暗层越淡，更能看见背后的内容）。只影响「液态玻璃」样式。",
+                "越大越通透：模糊、压暗、折射都会跟着减弱，拉到最大几乎完全透明，能原样看见背后的背景。",
                 style = MaterialTheme.typography.bodySmall,
                 color = AppMuted,
             )

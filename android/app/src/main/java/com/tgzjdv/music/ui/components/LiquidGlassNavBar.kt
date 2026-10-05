@@ -55,6 +55,7 @@ import androidx.navigation.NavHostController
 import com.tgzjdv.music.ui.Routes
 import com.tgzjdv.music.ui.theme.AppMuted
 import com.tgzjdv.music.ui.theme.AppPrimary
+import com.tgzjdv.music.ui.theme.GlassTuningStore
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
@@ -165,25 +166,27 @@ fun LiquidGlassNavBar(
                     shape = { capsule },
                     effects = {
                         vibrancy()
-                        blur(radius = 14f.dp.toPx())
+                        val b = GlassTuningStore.blurOf(14f.dp.toPx())
+                        if (b > 0.5f) blur(radius = b)
+                        val l = GlassTuningStore.lensOf(20f.dp.toPx())
                         lens(
-                            refractionHeight = 20f.dp.toPx(),
-                            refractionAmount = 20f.dp.toPx(),
+                            refractionHeight = l,
+                            refractionAmount = l,
                             depthEffect = true,
                             chromaticAberration = true,
                         )
                     },
                     highlight = { Highlight.Default },
-                    shadow = { Shadow(alpha = 0.35f) },
+                    shadow = { Shadow(alpha = GlassTuningStore.shadowOf(0.35f)) },
                 )
                 .onSizeChanged {
                     barWidth = it.width.toFloat()
                     barHeight = it.height.toFloat()
                 }
                 .drawBehind {
-                    // 稍微压暗，提升图标可读性
+                    // 稍微压暗，提升图标可读性（跟随通透度）
                     drawRoundRect(
-                        color = Color.Black.copy(alpha = 0.22f),
+                        color = Color.Black.copy(alpha = 0.22f * (1f - GlassTuningStore.clarity)),
                         cornerRadius = CornerRadius(barHeight / 2f),
                     )
                 },

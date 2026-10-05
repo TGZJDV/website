@@ -42,6 +42,7 @@ import com.tgzjdv.music.ui.theme.AppPrimary
 import com.tgzjdv.music.ui.theme.AppSurface2
 import com.tgzjdv.music.ui.theme.AppSurface3
 import com.tgzjdv.music.ui.theme.AppText
+import com.tgzjdv.music.ui.theme.GlassTuningStore
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
@@ -171,20 +172,22 @@ fun MiniPlayer(
                     shape = { shape },
                     effects = {
                         vibrancy()
-                        blur(radius = 14f.dp.toPx())
+                        val b = GlassTuningStore.blurOf(14f.dp.toPx())
+                        if (b > 0.5f) blur(radius = b)
+                        val l = GlassTuningStore.lensOf(16f.dp.toPx())
                         lens(
-                            refractionHeight = 16f.dp.toPx(),
-                            refractionAmount = 16f.dp.toPx(),
+                            refractionHeight = l,
+                            refractionAmount = l,
                             depthEffect = true,
                             chromaticAberration = true,
                         )
                     },
                     highlight = { Highlight.Default },
-                    shadow = { Shadow(alpha = 0.35f) },
+                    shadow = { Shadow(alpha = GlassTuningStore.shadowOf(0.35f)) },
                 )
                 .drawBehind {
                     drawRoundRect(
-                        color = Color.Black.copy(alpha = 0.28f),
+                        color = Color.Black.copy(alpha = 0.28f * (1f - GlassTuningStore.clarity)),
                         cornerRadius = CornerRadius(radiusPx),
                     )
                 },

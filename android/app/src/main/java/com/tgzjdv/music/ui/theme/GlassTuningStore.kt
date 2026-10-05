@@ -44,4 +44,22 @@ object GlassTuningStore {
     /** 玻璃圆片的高光白 alpha（越通透 → 越薄） */
     fun surfaceAlpha(base: Float = 0.18f): Float =
         (base * (1f - _translucency.value * 0.8f)).coerceIn(0f, 0.6f)
+
+    /*
+     * 下面三个给「不走 glassPanel 的玻璃元素」用（底栏 / 迷你播放条 / 播放页面板）。
+     * 直接在 drawBackdrop 的 effects lambda 里调用即可 —— 读的是 StateFlow 的 value，
+     * 会被库的 observeReads 记录，所以拖动滑块会即时重绘，不需要额外 recomposition。
+     */
+
+    /** 0 = 最实，1 = 最通透 */
+    val clarity: Float get() = _translucency.value.coerceIn(0f, 1f)
+
+    /** 按通透度削弱的模糊半径（最通透时几乎为 0 → 真的"透明"） */
+    fun blurOf(basePx: Float): Float = basePx * (1f - clarity * 0.96f)
+
+    /** 按通透度削弱的透镜折射量 */
+    fun lensOf(basePx: Float): Float = basePx * (0.25f + 0.75f * (1f - clarity))
+
+    /** 按通透度削弱的投影 */
+    fun shadowOf(base: Float): Float = base * (0.4f + 0.6f * (1f - clarity))
 }

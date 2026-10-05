@@ -59,7 +59,8 @@ fun Modifier.glassPanel(
     val clipped = this.clip(shape)
     if (backdrop == null) return clipped.background(fallback)
 
-    // 「设置 → 玻璃通透度」：0 = 最实，1 = 最通透（压暗层按比例变淡）
+    // 「设置 → 玻璃通透度」：0 = 最实（满模糊+满压暗），1 = 最通透（几乎不模糊、不压暗）
+    // ⚠️ 只调压暗层是不够的 —— 那样只是"糊得更透"，用户要的是"清楚"。所以模糊也要跟着削弱。
     val translucency by GlassTuningStore.translucency.collectAsState()
 
     return clipped
@@ -68,21 +69,24 @@ fun Modifier.glassPanel(
             shape = { shape },
             effects = {
                 vibrancy()
-                blur(radius = blurRadius.toPx())
+                // 注意：blur/lens 的 px 换算必须在 effects lambda 里做 —— 它是 Density 作用域
+                val b = blurRadius.toPx() * (1f - translucency * 0.96f)
+                if (b > 0.5f) blur(radius = b)
                 // ⚠️ 只在面板够大时才启用透镜折射。
                 // lens 走 AGSL 圆角矩形 SDF：尺寸过小 / 圆角半径超过边长时会算出非法值，
                 // 同样会在 RenderThread 里 SIGSEGV。小面板只做模糊+通透，视觉无差别但安全。
                 if (size.minDimension >= 120f) {
+                    val l = 0.25f + 0.75f * (1f - translucency)
                     lens(
-                        refractionHeight = 12f.dp.toPx(),
-                        refractionAmount = 16f.dp.toPx(),
+                        refractionHeight = 12f.dp.toPx() * l,
+                        refractionAmount = 16f.dp.toPx() * l,
                         depthEffect = true,
                         chromaticAberration = true,
                     )
                 }
             },
             highlight = { Highlight.Default },
-            shadow = { Shadow(alpha = 0.30f) },
+            shadow = { Shadow(alpha = 0.30f * (0.4f + 0.6f * (1f - translucency))) },
         )
         .background(tint.copy(alpha = tint.alpha * (1f - translucency)))
 }
@@ -138,18 +142,20 @@ fun Modifier.glassCircle(
             shape = { CircleShape },
             effects = {
                 vibrancy()
-                blur(radius = blurRadius.toPx())
+                val b = blurRadius.toPx() * (1f - translucency * 0.96f)
+                if (b > 0.5f) blur(radius = b)
                 if (size.minDimension >= 100f) {
+                    val l = 0.25f + 0.75f * (1f - translucency)
                     lens(
-                        refractionHeight = 10f.dp.toPx(),
-                        refractionAmount = 14f.dp.toPx(),
+                        refractionHeight = 10f.dp.toPx() * l,
+                        refractionAmount = 14f.dp.toPx() * l,
                         depthEffect = true,
                         chromaticAberration = true,
                     )
                 }
             },
             highlight = { Highlight.Default },
-            shadow = { Shadow(alpha = 0.40f) },
+            shadow = { Shadow(alpha = 0.40f * (0.4f + 0.6f * (1f - translucency))) },
         )
         .background(tint.copy(alpha = tint.alpha * (1f - translucency)))
 }
