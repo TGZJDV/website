@@ -61,6 +61,7 @@ import com.tgzjdv.music.playback.LrcLine
 import com.tgzjdv.music.playback.LrcParser
 import com.tgzjdv.music.playback.PlayerManager
 import com.tgzjdv.music.session.AppSession
+import com.tgzjdv.music.ui.components.GlassIconButton
 import com.tgzjdv.music.ui.components.SongCover
 import com.tgzjdv.music.ui.components.glassCircle
 import com.tgzjdv.music.ui.components.glassPanel
@@ -185,9 +186,12 @@ fun NowPlayingScreen(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "返回", tint = AppMuted)
-            }
+            GlassIconButton(
+                icon = Icons.Rounded.KeyboardArrowDown,
+                contentDescription = "返回",
+                onClick = onBack,
+                tint = AppMuted,
+            )
             Text("正在播放", color = AppMuted, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.weight(1f))
             Text(song.genre, color = AppMuted, style = MaterialTheme.typography.bodySmall)

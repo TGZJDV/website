@@ -33,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -43,6 +44,7 @@ import com.tgzjdv.music.data.PresignRequest
 import com.tgzjdv.music.session.AppSession
 import com.tgzjdv.music.ui.theme.AppMuted
 import com.tgzjdv.music.ui.theme.LocalBottomBarInset
+import com.tgzjdv.music.ui.components.glassPanel
 import com.tgzjdv.music.ui.theme.AppPrimary
 import com.tgzjdv.music.ui.theme.AppSurface2
 import com.tgzjdv.music.ui.theme.AppText
@@ -257,8 +259,12 @@ fun UploadScreen(
                             color = if (active) AppPrimary else AppText,
                             style = MaterialTheme.typography.labelMedium,
                             modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .background(if (active) AppPrimary.copy(alpha = 0.18f) else AppSurface2)
+                                .glassPanel(
+                                    shape = RoundedCornerShape(percent = 50),
+                                    fallback = if (active) AppPrimary.copy(alpha = 0.18f) else AppSurface2,
+                                    tint = if (active) AppPrimary.copy(alpha = 0.16f)
+                                    else Color.Black.copy(alpha = 0.18f),
+                                )
                                 .clickable { genre = g }
                                 .padding(horizontal = 12.dp, vertical = 6.dp),
                         )
@@ -375,8 +381,7 @@ private fun PickerCard(label: String, value: String, picked: Boolean, onClick: (
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(AppSurface2)
+            .glassPanel(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .padding(14.dp),
     ) {

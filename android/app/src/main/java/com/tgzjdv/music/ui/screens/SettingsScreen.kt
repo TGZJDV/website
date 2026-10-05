@@ -35,6 +35,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.tgzjdv.music.ui.components.GlassIconButton
+import com.tgzjdv.music.ui.components.glassPanel
 import com.tgzjdv.music.ui.theme.AppMuted
 import com.tgzjdv.music.ui.theme.AppPrimary
 import com.tgzjdv.music.ui.theme.AppSurface2
@@ -54,9 +56,11 @@ fun SettingsScreen(onBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Rounded.ArrowBack, contentDescription = "返回", tint = AppText)
-            }
+            GlassIconButton(
+                icon = Icons.Rounded.ArrowBack,
+                contentDescription = "返回",
+                onClick = onBack,
+            )
             Text(
                 "设置",
                 style = MaterialTheme.typography.titleMedium,
@@ -113,8 +117,11 @@ private fun NavStyleOption(style: NavStyle, selected: Boolean, onClick: () -> Un
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (selected) AppPrimary.copy(alpha = 0.10f) else AppSurface2)
+            .glassPanel(
+                shape = RoundedCornerShape(16.dp),
+                fallback = if (selected) AppPrimary.copy(alpha = 0.10f) else AppSurface2,
+                tint = if (selected) AppPrimary.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.18f),
+            )
             .border(
                 width = if (selected) 1.5.dp else 1.dp,
                 color = if (selected) AppPrimary.copy(alpha = 0.65f) else AppSurface3,

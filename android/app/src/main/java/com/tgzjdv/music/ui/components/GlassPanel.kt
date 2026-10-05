@@ -1,6 +1,9 @@
 package com.tgzjdv.music.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,6 +19,7 @@ import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
 import com.tgzjdv.music.ui.theme.AppSurface2
+import com.tgzjdv.music.ui.theme.AppText
 import com.tgzjdv.music.ui.theme.LocalGlassBackdrop
 
 /*
@@ -78,9 +82,38 @@ fun Modifier.glassPanel(
 }
 
 /**
- * 圆形玻璃按钮（播放/暂停等）。
- * 经典样式下退化为 [fallback] 实心圆。
+ * 透明圆形图标按钮（返回、收藏等）。
+ *
+ * - **经典样式**：完全透明，只有图标（就是"透明圆形按钮"）
+ * - **液态玻璃样式**：一枚淡淡的玻璃圆片 + 白描边，悬在内容上
  */
+@Composable
+fun GlassIconButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 40.dp,
+    iconSize: Dp = 22.dp,
+    tint: Color = AppText,
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .glassCircle(fallback = Color.Transparent),
+        contentAlignment = androidx.compose.ui.Alignment.Center,
+    ) {
+        androidx.compose.material3.Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier
+                .size(iconSize)
+                .clickable(onClick = onClick),
+        )
+    }
+}
+
 @Composable
 fun Modifier.glassCircle(
     fallback: Color,

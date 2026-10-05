@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.tgzjdv.music.data.ApiClient
@@ -38,6 +39,7 @@ import com.tgzjdv.music.ui.components.EmptyState
 import com.tgzjdv.music.ui.components.ErrorState
 import com.tgzjdv.music.ui.components.LoadingBox
 import com.tgzjdv.music.ui.components.SongRow
+import com.tgzjdv.music.ui.components.glassPanel
 import com.tgzjdv.music.ui.theme.AppMuted
 import com.tgzjdv.music.ui.theme.AppPrimary
 import com.tgzjdv.music.ui.theme.AppSurface2
@@ -83,8 +85,12 @@ fun GenreScreen(
                         val active = selected == g.genre
                         Row(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .background(if (active) AppPrimary.copy(alpha = 0.18f) else AppSurface2)
+                                .glassPanel(
+                                    shape = RoundedCornerShape(percent = 50),
+                                    fallback = if (active) AppPrimary.copy(alpha = 0.18f) else AppSurface2,
+                                    tint = if (active) AppPrimary.copy(alpha = 0.16f)
+                                    else Color.Black.copy(alpha = 0.18f),
+                                )
                                 .clickable { selected = if (active) "" else g.genre }
                                 .padding(horizontal = 14.dp, vertical = 7.dp),
                             verticalAlignment = Alignment.CenterVertically,

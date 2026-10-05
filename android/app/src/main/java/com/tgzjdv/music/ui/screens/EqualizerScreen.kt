@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tgzjdv.music.playback.EqualizerManager
+import com.tgzjdv.music.ui.components.GlassIconButton
 import com.tgzjdv.music.ui.theme.AppMuted
 import com.tgzjdv.music.ui.theme.LocalBottomBarInset
 import com.tgzjdv.music.ui.theme.AppPrimary
@@ -57,9 +58,11 @@ fun EqualizerScreen(onBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Rounded.ArrowBack, contentDescription = "返回", tint = AppText)
-            }
+            GlassIconButton(
+                icon = Icons.Rounded.ArrowBack,
+                contentDescription = "返回",
+                onClick = onBack,
+            )
             Text(
                 "均衡器",
                 style = MaterialTheme.typography.titleMedium,

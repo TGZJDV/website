@@ -142,8 +142,7 @@ fun PlaylistsScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(AppSurface3)
+                                .glassPanel(RoundedCornerShape(10.dp), fallback = AppSurface3)
                                 .padding(12.dp),
                         ) {
                             Icon(Icons.Rounded.QueueMusic, contentDescription = null, tint = AppMuted)

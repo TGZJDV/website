@@ -47,6 +47,7 @@ import com.tgzjdv.music.ui.components.TitleBadge
 import com.tgzjdv.music.ui.theme.AppAccent
 import com.tgzjdv.music.ui.theme.AppMuted
 import com.tgzjdv.music.ui.theme.LocalBottomBarInset
+import com.tgzjdv.music.ui.components.glassPanel
 import com.tgzjdv.music.ui.theme.AppPrimary
 import com.tgzjdv.music.ui.theme.AppSurface2
 import com.tgzjdv.music.ui.theme.AppText
@@ -177,8 +178,7 @@ private fun AdminUserCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(AppSurface2)
+            .glassPanel(RoundedCornerShape(12.dp))
             .padding(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +47,7 @@ import com.tgzjdv.music.ui.components.ErrorState
 import com.tgzjdv.music.ui.components.LoadingBox
 import com.tgzjdv.music.ui.components.SectionTitle
 import com.tgzjdv.music.ui.components.SongCover
+import com.tgzjdv.music.ui.components.glassCircle
 import com.tgzjdv.music.ui.components.glassPanel
 import com.tgzjdv.music.ui.theme.AppAccent
 import com.tgzjdv.music.ui.theme.AppMuted
@@ -224,8 +226,7 @@ fun SongGridCard(song: Song, onPlay: () -> Unit, onDetail: () -> Unit) {
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(6.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(AppPrimary)
+                    .glassCircle(fallback = AppPrimary, tint = Color.White.copy(alpha = 0.10f))
                     .clickable(onClick = onPlay)
                     .padding(6.dp),
             ) {
