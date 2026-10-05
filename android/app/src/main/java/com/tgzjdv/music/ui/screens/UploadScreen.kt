@@ -42,6 +42,7 @@ import com.tgzjdv.music.data.CompleteRequest
 import com.tgzjdv.music.data.PresignRequest
 import com.tgzjdv.music.session.AppSession
 import com.tgzjdv.music.ui.theme.AppMuted
+import com.tgzjdv.music.ui.theme.LocalBottomBarInset
 import com.tgzjdv.music.ui.theme.AppPrimary
 import com.tgzjdv.music.ui.theme.AppSurface2
 import com.tgzjdv.music.ui.theme.AppText
@@ -200,6 +201,8 @@ fun UploadScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
+            // 液态玻璃底栏浮在内容之上，留出占位
+            .padding(bottom = LocalBottomBarInset.current)
             .padding(16.dp),
     ) {
         Text("上传音乐", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)

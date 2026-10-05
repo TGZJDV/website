@@ -46,6 +46,7 @@ import com.tgzjdv.music.ui.components.LoadingBox
 import com.tgzjdv.music.ui.components.TitleBadge
 import com.tgzjdv.music.ui.theme.AppAccent
 import com.tgzjdv.music.ui.theme.AppMuted
+import com.tgzjdv.music.ui.theme.LocalBottomBarInset
 import com.tgzjdv.music.ui.theme.AppPrimary
 import com.tgzjdv.music.ui.theme.AppSurface2
 import com.tgzjdv.music.ui.theme.AppText
@@ -114,7 +115,15 @@ fun AdminScreen(onBack: () -> Unit, onLogin: () -> Unit) {
             loading -> LoadingBox()
             error != null -> ErrorState(error!!, onRetry = { reloadKey++ })
             users.isEmpty() -> EmptyState("暂无用户")
-            else -> LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
+            else -> LazyColumn(
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    top = 8.dp,
+                    end = 16.dp,
+                    // 液态玻璃底栏浮在内容之上，留出占位，否则最后几条被挡住
+                    bottom = 8.dp + LocalBottomBarInset.current,
+                ),
+            ) {
                 items(users, key = { it.id }) { u ->
                     AdminUserCard(
                         user = u,

@@ -139,55 +139,7 @@ fun AppRoot() {
                     .fillMaxSize()
                     .layerBackdrop(bgBackdrop),
             ) {
-                Box(modifier = Modifier.fillMaxSize().background(AppSurface))
-
-                // 自定义背景（用户从相册选 / UAPI 随机图片）。
-                // ⚠️ 必须画在采样层**内部** —— 这样页面里的液态玻璃面板能折射它，
-                //    玻璃才有「有内容可折射」的观感；画在外面的话玻璃只会采到纯色。
-                when (bgState.mode) {
-                    BgMode.LOCAL -> {
-                        val uri = bgState.localUri
-                        if (!uri.isNullOrBlank()) {
-                            AsyncImage(
-                                model = uri,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
-                    }
-                    BgMode.UAPI -> {
-                        val f = BackgroundStore.uapiFile()
-                        if (f != null && f.exists()) {
-                            AsyncImage(
-                                model = f,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
-                    }
-                    BgMode.NONE -> Unit
-                }
-                // 压暗，保证文字与图标在任何背景上都读得清
-                if (bgState.mode != BgMode.NONE) {
-                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.58f)))
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.055f),
-                                    Color.Transparent,
-                                ),
-                                center = Offset(0.30f * 1080f, 0.18f * 2400f),
-                                radius = 1500f,
-                            ),
-                        ),
-                )
+                AppBackground(bgState)
             }
 
             // 内容层：整屏，并作为底栏/迷你播放条的玻璃采样源
@@ -201,12 +153,15 @@ fun AppRoot() {
                         .fillMaxSize()
                         .layerBackdrop(backdrop),
                 ) {
-                    // ⚠️ 不透明底必须是采样层**内部的子节点**：
+                    // ⚠️ 背景必须是采样层**内部的子节点**：
                     // 写成 .background() 挂在这个 Box 上时，它排 layerBackdrop 之前，
                     // 不会被录进采样层 —— 层在底栏那个位置就是透明的，
                     // 于是玻璃画出来的模糊副本是透明的，底下「清晰的原内容」直接透出来，
                     // 看上去就像「背板没加模糊」。
-                    Box(modifier = Modifier.fillMaxSize().background(AppSurface))
+                    //
+                    // 同时这里也要画**用户自定义背景**：否则内容层的不透明底色会把
+                    // 背景采样层里的背景图整个盖住，用户就看不到自己设的背景。
+                    AppBackground(bgState)
 
                     NavHost(
                         navController = nav,
@@ -352,4 +307,64 @@ private fun BottomNavBar(nav: NavHostController, currentRoute: String?) {
             )
         }
     }
+}
+
+/**
+ * 应用背景：纯色底 → 用户自定义背景（相册 / UAPI 随机图）→ 压暗 → 微弱径向光。
+ *
+ * ⚠️ 这个组件被画在**两处**：
+ *   ① 背景采样层（供页面内部的液态玻璃面板采样）
+ *   ② 内容层（否则内容层的不透明底会把背景图盖住，用户看不到自己设的背景）
+ * 两处必须画同样的东西，否则玻璃折射出来的和肉眼看到的会对不上。
+ */
+@Composable
+private fun AppBackground(bgState: BackgroundStore.State) {
+    Box(modifier = Modifier.fillMaxSize().background(AppSurface))
+
+    when (bgState.mode) {
+        BgMode.LOCAL -> {
+            val uri = bgState.localUri
+            if (!uri.isNullOrBlank()) {
+                AsyncImage(
+                    model = uri,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+        BgMode.UAPI -> {
+            val f = BackgroundStore.uapiFile()
+            if (f != null && f.exists()) {
+                AsyncImage(
+                    model = f,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+        BgMode.NONE -> Unit
+    }
+
+    // 压暗，保证文字与图标在任何背景上都读得清
+    if (bgState.mode != BgMode.NONE) {
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.58f)))
+    }
+
+    // 微弱径向光：纯色背景下也给玻璃一点可折射的层次
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.055f),
+                        Color.Transparent,
+                    ),
+                    center = Offset(0.30f * 1080f, 0.18f * 2400f),
+                    radius = 1500f,
+                ),
+            ),
+    )
 }

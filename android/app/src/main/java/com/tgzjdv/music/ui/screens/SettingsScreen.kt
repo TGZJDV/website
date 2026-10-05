@@ -40,6 +40,7 @@ import com.tgzjdv.music.ui.theme.AppPrimary
 import com.tgzjdv.music.ui.theme.AppSurface2
 import com.tgzjdv.music.ui.theme.AppSurface3
 import com.tgzjdv.music.ui.theme.AppText
+import com.tgzjdv.music.ui.theme.LocalBottomBarInset
 import com.tgzjdv.music.ui.theme.NavStyle
 import com.tgzjdv.music.ui.theme.NavStyleStore
 
@@ -66,6 +67,7 @@ fun SettingsScreen(onBack: () -> Unit) {
 
         Column(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                .padding(bottom = LocalBottomBarInset.current)
                 .padding(horizontal = 16.dp),
         ) {
             Text(

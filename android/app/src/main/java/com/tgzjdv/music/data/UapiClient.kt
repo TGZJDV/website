@@ -16,9 +16,11 @@ import java.util.concurrent.TimeUnit
  *
  * - **完整 API 地址**照文档整条使用，不取相对路径、不省略 `/api/v1` 版本前缀：
  *   `https://uapis.cn/api/v1/random/image`
- * - **鉴权**：`Authorization: Bearer <KEY>`，密钥以 `uapi-` 开头。
- *   密钥来自 [UapiKeyStore]（应用内设置）或 `BuildConfig.UAPI_KEY`（android/uapi.properties，
- *   已 gitignore）。**不硬编码、不拼进 URL。**
+ * - **鉴权（可选）**：`Authorization: Bearer <KEY>`，密钥以 `uapi-` 开头。
+ *   实测该接口**不配密钥也能用**（免费通道）；但配了**错误的**密钥会得到 401。
+ *   因此本实现只在密钥非空时才发这个头。密钥来自 [UapiKeyStore]（应用内设置）或
+ *   `BuildConfig.UAPI_KEY`（android/uapi.properties，已 gitignore）。
+ *   **不硬编码、不拼进 URL。**
  * - **成功**：302 重定向到图片，跟随重定向后返回 `image/jpeg` 二进制。
  * - **错误**：`404 {"code":"NOT_FOUND"}`、`500 {"code":"INTERNAL_SERVER_ERROR"}`。
  */
@@ -105,8 +107,12 @@ object UapiClient {
             }
 
             val key = effectiveKey()
-            if (key.isBlank()) {
-                throw ApiException("未配置 UAPI 密钥：请在「设置 → 自定义背景」里填入以 uapi- 开头的密钥")
+            // ⚠️ 实测（curl 直连验证）：
+            //   不带 Authorization → 302 → 200 image/jpeg（免费可用）
+            //   带错误的 Bearer     → 401 Unauthorized（反而把接口弄坏）
+            // 所以密钥是**可选**的：有就带、没有就不带，绝不因为"没配密钥"而拒绝请求。
+            if (key.isNotBlank() && !key.startsWith("uapi-")) {
+                throw ApiException("UAPI 密钥格式不对：应以 uapi- 开头")
             }
 
             val url = buildString {
@@ -123,7 +129,10 @@ object UapiClient {
 
             val request = Request.Builder()
                 .url(url)
-                .header("Authorization", "Bearer $key") // 密钥只放请求头，不进 URL
+                .apply {
+                    // 只有配了密钥才加这个头；没配就走免费通道
+                    if (key.isNotBlank()) header("Authorization", "Bearer $key")
+                }
                 .header("Accept", "image/jpeg,image/*;q=0.9,*/*;q=0.5")
                 .get()
                 .build()

@@ -155,7 +155,17 @@ fun BackgroundSettingSection() {
                 .glassPanel(RoundedCornerShape(16.dp))
                 .padding(14.dp),
         ) {
-            Text("UAPI 密钥", style = MaterialTheme.typography.bodySmall, color = AppMuted)
+            Text(
+                "UAPI 密钥（可选）",
+                style = MaterialTheme.typography.bodySmall,
+                color = AppMuted,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "实测不填也能用（免费通道）。若填了**错误**的密钥反而会 401，所以不确定就别填。",
+                style = MaterialTheme.typography.labelSmall,
+                color = AppMuted,
+            )
             Spacer(Modifier.height(6.dp))
             OutlinedTextField(
                 value = keyInput,
@@ -176,12 +186,16 @@ fun BackgroundSettingSection() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextButton("保存密钥") {
                     UapiKeyStore.setKey(keyInput)
-                    message = if (UapiClient.hasKey()) "密钥已保存" else "密钥为空"
-                    isError = !UapiClient.hasKey()
+                    message = if (keyInput.isBlank()) "已清空密钥（走免费通道）" else "密钥已保存"
+                    isError = false
                 }
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    if (UapiClient.hasKey()) "已配置" else "未配置（也可写进 android/uapi.properties）",
+                    when {
+                        !UapiClient.hasKey() -> "未配置 · 走免费通道"
+                        UapiClient.effectiveKey().startsWith("uapi-") -> "已配置"
+                        else -> "格式可疑（应以 uapi- 开头）"
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = if (UapiClient.hasKey()) AppPrimary else AppMuted,
                 )
@@ -221,11 +235,6 @@ fun BackgroundSettingSection() {
                         .clip(RoundedCornerShape(50))
                         .background(AppPrimary)
                         .clickable(enabled = !loading) {
-                            if (!UapiClient.hasKey()) {
-                                message = "请先填写并保存 UAPI 密钥"
-                                isError = true
-                                return@clickable
-                            }
                             loading = true
                             message = null
                             scope.launch {

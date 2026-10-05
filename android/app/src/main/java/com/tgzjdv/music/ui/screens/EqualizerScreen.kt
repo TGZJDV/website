@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tgzjdv.music.playback.EqualizerManager
 import com.tgzjdv.music.ui.theme.AppMuted
+import com.tgzjdv.music.ui.theme.LocalBottomBarInset
 import com.tgzjdv.music.ui.theme.AppPrimary
 import com.tgzjdv.music.ui.theme.AppSurface2
 import com.tgzjdv.music.ui.theme.AppSurface3
@@ -100,7 +101,7 @@ fun EqualizerScreen(onBack: () -> Unit) {
         }
 
         LazyColumn(
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp + LocalBottomBarInset.current),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             // 总开关

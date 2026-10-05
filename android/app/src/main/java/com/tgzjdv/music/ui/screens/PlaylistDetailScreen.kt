@@ -43,6 +43,7 @@ import com.tgzjdv.music.ui.components.ErrorState
 import com.tgzjdv.music.ui.components.LoadingBox
 import com.tgzjdv.music.ui.components.SongRow
 import com.tgzjdv.music.ui.theme.AppMuted
+import com.tgzjdv.music.ui.theme.LocalBottomBarInset
 import com.tgzjdv.music.ui.theme.AppPrimary
 import com.tgzjdv.music.ui.theme.AppSurface2
 import com.tgzjdv.music.ui.theme.AppText
@@ -120,7 +121,7 @@ fun PlaylistDetailScreen(
             loading -> LoadingBox()
             error != null -> ErrorState(error!!, onRetry = { reloadKey++ })
             songs.isEmpty() -> EmptyState("歌单还是空的，去添加歌曲吧！")
-            else -> LazyColumn(contentPadding = PaddingValues(bottom = 16.dp)) {
+            else -> LazyColumn(contentPadding = PaddingValues(bottom = 16.dp + LocalBottomBarInset.current)) {
                 itemsIndexed(songs, key = { _, s -> s.id }) { i, song ->
                     SongRow(
                         song = song,
