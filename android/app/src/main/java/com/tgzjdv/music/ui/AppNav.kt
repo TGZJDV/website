@@ -110,8 +110,13 @@ fun AppRoot() {
     // 自定义背景（相册图片 / UAPI 随机图片）
     val bgState by BackgroundStore.state.collectAsState()
 
-    // 液态玻璃要采样「底栏背后的真实内容」：内容层铺满全屏，与底栏共用同一份 backdrop
-    val glass = !hideBars && navStyle == NavStyle.LIQUID_GLASS
+    // ⚠️ 这里必须分成两个开关：
+    //   glassBars 控制「底栏/迷你播放条要不要显示成玻璃」→ 与 hideBars 有关
+    //   glassMode 控制「页面内的面板要不要用玻璃材质」→ **与 hideBars 无关**
+    // 之前两者共用一个变量，进播放页时 hideBars=true 会让 LocalGlassBackdrop 变 null，
+    // 正在淡出的上一页所有面板会当场退回普通样式（淡入时"元素变普通"就是这个）
+    val glassBars = !hideBars && navStyle == NavStyle.LIQUID_GLASS
+    val glassMode = navStyle == NavStyle.LIQUID_GLASS
     val backdrop = rememberLayerBackdrop()
     // ⚠️ 页面**内部**的面板（卡片/按钮）必须采样另一份「背景层」：
     // 它们位于内容层内部，若采样内容层＝在自己的采样层里画自己 → HWUI 栈溢出闪退。
@@ -144,9 +149,9 @@ fun AppRoot() {
 
             // 内容层：整屏，并作为底栏/迷你播放条的玻璃采样源
             CompositionLocalProvider(
-                LocalBottomBarInset provides if (glass) 152.dp else 0.dp,
+                LocalBottomBarInset provides if (glassBars) 152.dp else 0.dp,
                 // 页面内部的卡片/面板采「背景层」（安全）；底栏等浮层用另一份（见下）
-                LocalGlassBackdrop provides if (glass) bgBackdrop else null,
+                LocalGlassBackdrop provides if (glassMode) bgBackdrop else null,
             ) {
                 Box(
                     modifier = Modifier
@@ -272,7 +277,7 @@ fun AppRoot() {
             }
 
             // 玻璃样式：迷你播放条 + 底栏浮在内容之上（内容从它们背后滚过）
-            if (glass) {
+            if (glassBars) {
                 Column(
                     modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
                 ) {

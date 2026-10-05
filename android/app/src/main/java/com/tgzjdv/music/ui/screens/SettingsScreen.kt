@@ -24,6 +24,8 @@ import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -42,6 +44,7 @@ import com.tgzjdv.music.ui.theme.AppPrimary
 import com.tgzjdv.music.ui.theme.AppSurface2
 import com.tgzjdv.music.ui.theme.AppSurface3
 import com.tgzjdv.music.ui.theme.AppText
+import com.tgzjdv.music.ui.theme.GlassTuningStore
 import com.tgzjdv.music.ui.theme.LocalBottomBarInset
 import com.tgzjdv.music.ui.theme.NavStyle
 import com.tgzjdv.music.ui.theme.NavStyleStore
@@ -50,6 +53,7 @@ import com.tgzjdv.music.ui.theme.NavStyleStore
 @Composable
 fun SettingsScreen(onBack: () -> Unit) {
     val current by NavStyleStore.style.collectAsState()
+    val translucency by GlassTuningStore.translucency.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -61,6 +65,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 contentDescription = "返回",
                 onClick = onBack,
             )
+            Spacer(Modifier.width(6.dp))
             Text(
                 "设置",
                 style = MaterialTheme.typography.titleMedium,
@@ -103,6 +108,44 @@ fun SettingsScreen(onBack: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = AppMuted,
             )
+
+            Spacer(Modifier.height(20.dp))
+
+            // ---------- 玻璃通透度 ----------
+            Text(
+                "玻璃通透度",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = AppText,
+            )
+            Text(
+                "越大越通透（压暗层越淡，更能看见背后的内容）。只影响「液态玻璃」样式。",
+                style = MaterialTheme.typography.bodySmall,
+                color = AppMuted,
+            )
+            Slider(
+                value = translucency,
+                onValueChange = { GlassTuningStore.setTranslucency(it) },
+                valueRange = 0f..1f,
+                colors = SliderDefaults.colors(
+                    thumbColor = AppPrimary,
+                    activeTrackColor = AppPrimary,
+                    inactiveTrackColor = AppSurface3,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text("最实", style = MaterialTheme.typography.labelSmall, color = AppMuted)
+                Text(
+                    "${(translucency * 100).toInt()}%",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AppPrimary,
+                )
+                Text("最通透", style = MaterialTheme.typography.labelSmall, color = AppMuted)
+            }
 
             Spacer(Modifier.height(20.dp))
             BackgroundSettingSection()

@@ -63,6 +63,7 @@ fun EqualizerScreen(onBack: () -> Unit) {
                 contentDescription = "返回",
                 onClick = onBack,
             )
+            Spacer(Modifier.width(6.dp))
             Text(
                 "均衡器",
                 style = MaterialTheme.typography.titleMedium,

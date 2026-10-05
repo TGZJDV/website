@@ -192,6 +192,7 @@ fun NowPlayingScreen(
                 onClick = onBack,
                 tint = AppMuted,
             )
+            Spacer(Modifier.width(6.dp))
             Text("正在播放", color = AppMuted, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.weight(1f))
             Text(song.genre, color = AppMuted, style = MaterialTheme.typography.bodySmall)

@@ -5,6 +5,7 @@ import com.tgzjdv.music.data.ApiClient
 import com.tgzjdv.music.data.BackgroundStore
 import com.tgzjdv.music.data.TokenStore
 import com.tgzjdv.music.data.UapiKeyStore
+import com.tgzjdv.music.ui.theme.GlassTuningStore
 import com.tgzjdv.music.ui.theme.NavStyleStore
 
 class FamousMusicApp : Application() {
@@ -15,6 +16,8 @@ class FamousMusicApp : Application() {
         ApiClient.initCache(this)
         // 底部导航栏样式（经典 / 液态玻璃）
         NavStyleStore.init(this)
+        // 玻璃通透度
+        GlassTuningStore.init(this)
         // 自定义背景（本地相册 / UAPI 随机图片）与 UAPI 密钥
         BackgroundStore.init(this)
         UapiKeyStore.init(this)

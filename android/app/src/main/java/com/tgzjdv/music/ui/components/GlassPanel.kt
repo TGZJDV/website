@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -20,6 +22,7 @@ import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
 import com.tgzjdv.music.ui.theme.AppSurface2
 import com.tgzjdv.music.ui.theme.AppText
+import com.tgzjdv.music.ui.theme.GlassTuningStore
 import com.tgzjdv.music.ui.theme.LocalGlassBackdrop
 
 /*
@@ -56,6 +59,9 @@ fun Modifier.glassPanel(
     val clipped = this.clip(shape)
     if (backdrop == null) return clipped.background(fallback)
 
+    // 「设置 → 玻璃通透度」：0 = 最实，1 = 最通透（压暗层按比例变淡）
+    val translucency by GlassTuningStore.translucency.collectAsState()
+
     return clipped
         .drawBackdrop(
             backdrop = backdrop,
@@ -78,7 +84,7 @@ fun Modifier.glassPanel(
             highlight = { Highlight.Default },
             shadow = { Shadow(alpha = 0.30f) },
         )
-        .background(tint)
+        .background(tint.copy(alpha = tint.alpha * (1f - translucency)))
 }
 
 /**
@@ -123,6 +129,8 @@ fun Modifier.glassCircle(
     val backdrop = LocalGlassBackdrop.current
     if (backdrop == null) return this.background(fallback, CircleShape)
 
+    val translucency by GlassTuningStore.translucency.collectAsState()
+
     return this
         .clip(CircleShape)
         .drawBackdrop(
@@ -143,5 +151,5 @@ fun Modifier.glassCircle(
             highlight = { Highlight.Default },
             shadow = { Shadow(alpha = 0.40f) },
         )
-        .background(tint)
+        .background(tint.copy(alpha = tint.alpha * (1f - translucency)))
 }
