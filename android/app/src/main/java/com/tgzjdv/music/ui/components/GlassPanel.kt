@@ -1,19 +1,29 @@
 package com.tgzjdv.music.ui.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
@@ -72,9 +82,9 @@ fun Modifier.glassPanel(
                 // 注意：blur/lens 的 px 换算必须在 effects lambda 里做 —— 它是 Density 作用域
                 val b = blurRadius.toPx() * (1f - translucency * 0.96f)
                 if (b > 0.5f) blur(radius = b)
-                // ⚠️ 只在面板够大时才启用透镜折射。
-                // lens 走 AGSL 圆角矩形 SDF：尺寸过小 / 圆角半径超过边长时会算出非法值，
-                // 同样会在 RenderThread 里 SIGSEGV。小面板只做模糊+通透，视觉无差别但安全。
+                // 只在面板够大时才启用透镜折射（AGSL 一笔不小的开销）。
+                // 另外 lens 走圆角矩形 SDF：尺寸过小 / 圆角半径超过边长时会算出非法值，
+                // 同样会在 RenderThread 里 SIGSEGV。
                 if (size.minDimension >= 120f) {
                     val l = 0.25f + 0.75f * (1f - translucency)
                     lens(
@@ -89,6 +99,53 @@ fun Modifier.glassPanel(
             shadow = { Shadow(alpha = 0.30f * (0.4f + 0.6f * (1f - translucency))) },
         )
         .background(tint.copy(alpha = tint.alpha * (1f - translucency)))
+}
+
+/**
+ * 「q 弹」点击：按下时整块玻璃轻微缩小，松手带弹簧回弹。
+ * 比 Material 的涟漪更贴合液态玻璃的手感 —— 玻璃是"软"的。
+ *
+ * 用法：接在 [glassPanel] / [glassCircle] **之后**，整块玻璃（含折射层）一起缩放。
+ */
+@Composable
+fun Modifier.bouncyClickable(
+    enabled: Boolean = true,
+    /** 按下时缩到多小：越小越"弹" */
+    pressedScale: Float = 0.94f,
+    onClick: () -> Unit,
+): Modifier {
+    val scale = remember { Animatable(1f) }
+    val scope = rememberCoroutineScope()
+    return this
+        .graphicsLayer {
+            scaleX = scale.value
+            scaleY = scale.value
+        }
+        .pointerInput(enabled, pressedScale) {
+            if (!enabled) return@pointerInput
+            awaitEachGesture {
+                val down = awaitFirstDown(requireUnconsumed = false)
+                scope.launch {
+                    scale.animateTo(
+                        pressedScale,
+                        spring(dampingRatio = 0.32f, stiffness = 900f),
+                    )
+                }
+                // 等手指抬起
+                while (true) {
+                    val event = awaitPointerEvent()
+                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                    if (!change.pressed) break
+                }
+                scope.launch {
+                    scale.animateTo(
+                        1f,
+                        spring(dampingRatio = 0.30f, stiffness = 420f),
+                    )
+                }
+                onClick()
+            }
+        }
 }
 
 /**
@@ -110,16 +167,15 @@ fun GlassIconButton(
     Box(
         modifier = modifier
             .size(size)
-            .glassCircle(fallback = Color.Transparent),
+            .glassCircle(fallback = Color.Transparent)
+            .bouncyClickable(pressedScale = 0.86f, onClick = onClick),
         contentAlignment = androidx.compose.ui.Alignment.Center,
     ) {
         androidx.compose.material3.Icon(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = tint,
-            modifier = Modifier
-                .size(iconSize)
-                .clickable(onClick = onClick),
+            modifier = Modifier.size(iconSize),
         )
     }
 }
