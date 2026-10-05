@@ -48,6 +48,7 @@ import com.tgzjdv.music.ui.components.LoadingBox
 import com.tgzjdv.music.ui.components.SectionTitle
 import com.tgzjdv.music.ui.components.SongCover
 import com.tgzjdv.music.ui.components.glassCircle
+import com.tgzjdv.music.ui.components.bouncyClickable
 import com.tgzjdv.music.ui.components.glassPanel
 import com.tgzjdv.music.ui.theme.AppAccent
 import com.tgzjdv.music.ui.theme.AppMuted
@@ -141,7 +142,7 @@ fun HomeScreen(
                             Row(
                                 modifier = Modifier
                                     .glassPanel(RoundedCornerShape(percent = 50))
-                                    .clickable { onGenreClick(g.genre) }
+                                    .bouncyClickable { onGenreClick(g.genre) }
                                     .padding(horizontal = 14.dp, vertical = 7.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
@@ -171,7 +172,7 @@ fun HomeScreen(
                     "查看全部 →",
                     color = AppPrimary,
                     style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.clickable(onClick = onSeeAll),
+                    modifier = Modifier.bouncyClickable(onClick = onSeeAll),
                 )
             }
         }
@@ -217,7 +218,7 @@ fun SongGridCard(song: Song, onPlay: () -> Unit, onDetail: () -> Unit) {
     Column(
         modifier = Modifier
             .glassPanel(RoundedCornerShape(12.dp))
-            .clickable(onClick = onPlay)
+            .bouncyClickable(onClick = onPlay)
             .padding(8.dp),
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -227,7 +228,7 @@ fun SongGridCard(song: Song, onPlay: () -> Unit, onDetail: () -> Unit) {
                     .align(Alignment.BottomEnd)
                     .padding(6.dp)
                     .glassCircle(fallback = AppPrimary, tint = Color.White.copy(alpha = 0.10f))
-                    .clickable(onClick = onPlay)
+                    .bouncyClickable(onClick = onPlay)
                     .padding(6.dp),
             ) {
                 Icon(
@@ -245,7 +246,7 @@ fun SongGridCard(song: Song, onPlay: () -> Unit, onDetail: () -> Unit) {
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.clickable(onClick = onDetail),
+            modifier = Modifier.bouncyClickable(onClick = onDetail),
         )
         Row(
             modifier = Modifier.fillMaxWidth(),

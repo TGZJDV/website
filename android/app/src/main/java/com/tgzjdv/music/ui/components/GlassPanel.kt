@@ -72,6 +72,7 @@ fun Modifier.glassPanel(
     // 「设置 → 玻璃通透度」：0 = 最实（满模糊+满压暗），1 = 最通透（几乎不模糊、不压暗）
     // ⚠️ 只调压暗层是不够的 —— 那样只是"糊得更透"，用户要的是"清楚"。所以模糊也要跟着削弱。
     val translucency by GlassTuningStore.translucency.collectAsState()
+    val perf by GlassTuningStore.perfMode.collectAsState()
 
     return clipped
         .drawBackdrop(
@@ -80,12 +81,12 @@ fun Modifier.glassPanel(
             effects = {
                 vibrancy()
                 // 注意：blur/lens 的 px 换算必须在 effects lambda 里做 —— 它是 Density 作用域
-                val b = blurRadius.toPx() * (1f - translucency * 0.96f)
+                val b = blurRadius.toPx() * (if (perf) 0.5f else 1f) * (1f - translucency * 0.96f)
                 if (b > 0.5f) blur(radius = b)
-                // 只在面板够大时才启用透镜折射（AGSL 一笔不小的开销）。
+                // 只在面板够大时才启用透镜折射（AGSL 一笔不小的开销；性能模式下直接不做）。
                 // 另外 lens 走圆角矩形 SDF：尺寸过小 / 圆角半径超过边长时会算出非法值，
                 // 同样会在 RenderThread 里 SIGSEGV。
-                if (size.minDimension >= 120f) {
+                if (!perf && size.minDimension >= 120f) {
                     val l = 0.25f + 0.75f * (1f - translucency)
                     lens(
                         refractionHeight = 12f.dp.toPx() * l,
@@ -190,6 +191,7 @@ fun Modifier.glassCircle(
     if (backdrop == null) return this.background(fallback, CircleShape)
 
     val translucency by GlassTuningStore.translucency.collectAsState()
+    val perf by GlassTuningStore.perfMode.collectAsState()
 
     return this
         .clip(CircleShape)
@@ -198,9 +200,9 @@ fun Modifier.glassCircle(
             shape = { CircleShape },
             effects = {
                 vibrancy()
-                val b = blurRadius.toPx() * (1f - translucency * 0.96f)
+                val b = blurRadius.toPx() * (if (perf) 0.5f else 1f) * (1f - translucency * 0.96f)
                 if (b > 0.5f) blur(radius = b)
-                if (size.minDimension >= 100f) {
+                if (!perf && size.minDimension >= 100f) {
                     val l = 0.25f + 0.75f * (1f - translucency)
                     lens(
                         refractionHeight = 10f.dp.toPx() * l,

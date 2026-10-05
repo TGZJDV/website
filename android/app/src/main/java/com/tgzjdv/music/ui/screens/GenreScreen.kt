@@ -39,6 +39,7 @@ import com.tgzjdv.music.ui.components.EmptyState
 import com.tgzjdv.music.ui.components.ErrorState
 import com.tgzjdv.music.ui.components.LoadingBox
 import com.tgzjdv.music.ui.components.SongRow
+import com.tgzjdv.music.ui.components.bouncyClickable
 import com.tgzjdv.music.ui.components.glassPanel
 import com.tgzjdv.music.ui.theme.AppMuted
 import com.tgzjdv.music.ui.theme.AppPrimary
@@ -91,7 +92,7 @@ fun GenreScreen(
                                     tint = if (active) AppPrimary.copy(alpha = 0.16f)
                                     else Color.Black.copy(alpha = 0.18f),
                                 )
-                                .clickable { selected = if (active) "" else g.genre }
+                                .bouncyClickable { selected = if (active) "" else g.genre }
                                 .padding(horizontal = 14.dp, vertical = 7.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {

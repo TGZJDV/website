@@ -166,15 +166,17 @@ fun LiquidGlassNavBar(
                     shape = { capsule },
                     effects = {
                         vibrancy()
-                        val b = GlassTuningStore.blurOf(14f.dp.toPx())
+                        val b = GlassTuningStore.blurOf(14f.dp.toPx()) * GlassTuningStore.blurScale
                         if (b > 0.5f) blur(radius = b)
-                        val l = GlassTuningStore.lensOf(20f.dp.toPx())
-                        lens(
-                            refractionHeight = l,
-                            refractionAmount = l,
-                            depthEffect = true,
-                            chromaticAberration = true,
-                        )
+                        if (!GlassTuningStore.perf) {
+                            val l = GlassTuningStore.lensOf(20f.dp.toPx())
+                            lens(
+                                refractionHeight = l,
+                                refractionAmount = l,
+                                depthEffect = true,
+                                chromaticAberration = true,
+                            )
+                        }
                     },
                     highlight = { Highlight.Default },
                     shadow = { Shadow(alpha = GlassTuningStore.shadowOf(0.35f)) },

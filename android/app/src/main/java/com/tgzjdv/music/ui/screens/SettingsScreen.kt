@@ -26,6 +26,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -38,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.tgzjdv.music.ui.components.GlassIconButton
+import com.tgzjdv.music.ui.components.bouncyClickable
 import com.tgzjdv.music.ui.components.glassPanel
 import com.tgzjdv.music.ui.theme.AppMuted
 import com.tgzjdv.music.ui.theme.AppPrimary
@@ -54,6 +56,7 @@ import com.tgzjdv.music.ui.theme.NavStyleStore
 fun SettingsScreen(onBack: () -> Unit) {
     val current by NavStyleStore.style.collectAsState()
     val translucency by GlassTuningStore.translucency.collectAsState()
+    val perfMode by GlassTuningStore.perfMode.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -147,6 +150,35 @@ fun SettingsScreen(onBack: () -> Unit) {
                 Text("最通透", style = MaterialTheme.typography.labelSmall, color = AppMuted)
             }
 
+            Spacer(Modifier.height(16.dp))
+
+            // ---------- 流畅优先 ----------
+            // 实测：玻璃全开 janky 帧 20~35%、帧时间 p90 48~57ms；关掉折射+模糊减半后
+            // RenderThread 的尖刺消失（同一台机、同样滑动）。
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "流畅优先",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AppText,
+                    )
+                    Text(
+                        "模糊半径减半 + 不做液体折射。玻璃元素多、滑动发涩时打开。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AppMuted,
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Switch(
+                    checked = perfMode,
+                    onCheckedChange = { GlassTuningStore.setPerfMode(it) },
+                )
+            }
+
             Spacer(Modifier.height(20.dp))
             BackgroundSettingSection()
 
@@ -170,7 +202,7 @@ private fun NavStyleOption(style: NavStyle, selected: Boolean, onClick: () -> Un
                 color = if (selected) AppPrimary.copy(alpha = 0.65f) else AppSurface3,
                 shape = RoundedCornerShape(16.dp),
             )
-            .clickable(onClick = onClick)
+            .bouncyClickable(onClick = onClick)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -23,8 +23,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -69,6 +71,9 @@ import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.tgzjdv.music.data.BackgroundStore
 import com.tgzjdv.music.data.BgMode
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.platform.LocalContext
 
 /** 路由表 */
 object Routes {
@@ -146,7 +151,7 @@ fun AppRoot() {
                     .fillMaxSize()
                     .layerBackdrop(bgBackdrop),
             ) {
-                AppBackground(bgState)
+                AppBackground(bgState, cheap = true)
             }
 
             // 内容层：整屏，并作为底栏/迷你播放条的玻璃采样源
@@ -322,56 +327,66 @@ private fun BottomNavBar(nav: NavHostController, currentRoute: String?) {
  * ⚠️ 这个组件被画在**两处**：
  *   ① 背景采样层（供页面内部的液态玻璃面板采样）
  *   ② 内容层（否则内容层的不透明底会把背景图盖住，用户看不到自己设的背景）
- * 两处必须画同样的东西，否则玻璃折射出来的和肉眼看到的会对不上。
+ * 两处内容必须一致，否则玻璃折射出来的和肉眼看到的会对不上。
+ *
+ * @param cheap 背景采样层用 `true`：
+ *   实测「绘制录制」占单帧 31ms（瓶颈），因为每个玻璃元素每帧都要把背景子树重录进自己的
+ *   图层 —— 其中最贵的是全屏大图绘制。采样层只是被**模糊后**采样，肉眼根本分不出清晰度，
+ *   所以这里故意用低分辨率解码 + 低滤镜质量，把这块成本降一个数量级。
+ *   内容层（用户真正看到的）仍然用完整画质。
  */
 @Composable
-private fun AppBackground(bgState: BackgroundStore.State) {
+private fun AppBackground(bgState: BackgroundStore.State, cheap: Boolean = false) {
+    val ctx = LocalContext.current
+
+    // 采样层用小尺寸解码；内容层用原始尺寸
+    fun req(model: Any) = if (cheap) {
+        ImageRequest.Builder(ctx).data(model).size(320, 720).build()
+    } else {
+        model
+    }
+
+    val model: Any? = when (bgState.mode) {
+        BgMode.LOCAL -> bgState.localUri?.takeIf { it.isNotBlank() }
+        BgMode.UAPI -> BackgroundStore.uapiFile()?.takeIf { it.exists() }
+        BgMode.NONE -> null
+    }
+
+    // ⚠️ 性能关键：背景子树会被**每个玻璃元素每帧重放一遍**（实测「绘制录制」占单帧 31ms+）。
+    // 所以这里尽量少画全屏层：
+    //   原来 4 层全屏填充（底色 + 图 + 压暗 + 径向光）
+    //   → 现在 2 层（底色 + 带压暗滤镜的图）
+    // 压暗用 ColorFilter 直接合进图片那一次绘制，省掉一整层全屏填充。
     Box(modifier = Modifier.fillMaxSize().background(AppSurface))
 
-    when (bgState.mode) {
-        BgMode.LOCAL -> {
-            val uri = bgState.localUri
-            if (!uri.isNullOrBlank()) {
-                AsyncImage(
-                    model = uri,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-        }
-        BgMode.UAPI -> {
-            val f = BackgroundStore.uapiFile()
-            if (f != null && f.exists()) {
-                AsyncImage(
-                    model = f,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-        }
-        BgMode.NONE -> Unit
-    }
-
-    // 压暗，保证文字与图标在任何背景上都读得清
-    if (bgState.mode != BgMode.NONE) {
-        Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.58f)))
-    }
-
-    // 微弱径向光：纯色背景下也给玻璃一点可折射的层次
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.055f),
-                        Color.Transparent,
-                    ),
-                    center = Offset(0.30f * 1080f, 0.18f * 2400f),
-                    radius = 1500f,
-                ),
+    if (model != null) {
+        AsyncImage(
+            model = req(model),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            filterQuality = if (cheap) FilterQuality.Low else FilterQuality.Medium,
+            // 用滤镜代替一层全屏黑色矩形：同样把背景压暗 58%，但不用多画一层
+            colorFilter = ColorFilter.tint(
+                Color.Black.copy(alpha = 0.58f),
+                BlendMode.SrcAtop,
             ),
-    )
+            modifier = Modifier.fillMaxSize(),
+        )
+    } else {
+        // 没有自定义背景时，保留那点微弱径向光，给玻璃一点可折射的层次
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.055f),
+                            Color.Transparent,
+                        ),
+                        center = Offset(0.30f * 1080f, 0.18f * 2400f),
+                        radius = 1500f,
+                    ),
+                ),
+        )
+    }
 }

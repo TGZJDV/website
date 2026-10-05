@@ -39,8 +39,8 @@ android {
         applicationId = "com.tgzjdv.music"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
 
         // 后端 API 地址（可通过 buildConfig 覆盖）
         buildConfigField("String", "API_BASE", "\"https://api.famousmusic.asia/api\"")

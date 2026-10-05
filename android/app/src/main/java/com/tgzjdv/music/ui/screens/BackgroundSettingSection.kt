@@ -49,6 +49,7 @@ import com.tgzjdv.music.data.BackgroundStore
 import com.tgzjdv.music.data.BgMode
 import com.tgzjdv.music.data.UapiClient
 import com.tgzjdv.music.data.UapiKeyStore
+import com.tgzjdv.music.ui.components.bouncyClickable
 import com.tgzjdv.music.ui.components.glassPanel
 import com.tgzjdv.music.ui.theme.AppMuted
 import com.tgzjdv.music.ui.theme.AppPrimary
@@ -297,7 +298,7 @@ private fun TextButton(text: String, onClick: () -> Unit) {
         modifier = Modifier
             .clip(RoundedCornerShape(50))
             .border(1.dp, AppSurface3, RoundedCornerShape(50))
-            .clickable(onClick = onClick)
+            .bouncyClickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
         Text(text, style = MaterialTheme.typography.labelSmall, color = AppText)
@@ -316,7 +317,7 @@ private fun BgOptionRow(
         modifier = Modifier
             .fillMaxWidth()
             .glassPanel(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+            .bouncyClickable(onClick = onClick)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -365,7 +366,7 @@ private fun <T> ChipFlow(
                                 if (active) AppPrimary.copy(alpha = 0.6f) else AppSurface3,
                                 RoundedCornerShape(percent = 50),
                             )
-                            .clickable { onSelect(v) }
+                            .bouncyClickable { onSelect(v) }
                             .padding(horizontal = 12.dp, vertical = 6.dp),
                     ) {
                         Text(

@@ -44,6 +44,7 @@ import com.tgzjdv.music.data.PresignRequest
 import com.tgzjdv.music.session.AppSession
 import com.tgzjdv.music.ui.theme.AppMuted
 import com.tgzjdv.music.ui.theme.LocalBottomBarInset
+import com.tgzjdv.music.ui.components.bouncyClickable
 import com.tgzjdv.music.ui.components.glassPanel
 import com.tgzjdv.music.ui.theme.AppPrimary
 import com.tgzjdv.music.ui.theme.AppSurface2
@@ -265,7 +266,7 @@ fun UploadScreen(
                                     tint = if (active) AppPrimary.copy(alpha = 0.16f)
                                     else Color.Black.copy(alpha = 0.18f),
                                 )
-                                .clickable { genre = g }
+                                .bouncyClickable { genre = g }
                                 .padding(horizontal = 12.dp, vertical = 6.dp),
                         )
                     }
@@ -382,7 +383,7 @@ private fun PickerCard(label: String, value: String, picked: Boolean, onClick: (
         modifier = Modifier
             .fillMaxWidth()
             .glassPanel(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .bouncyClickable(onClick = onClick)
             .padding(14.dp),
     ) {
         Text(label, style = MaterialTheme.typography.bodySmall, color = AppMuted)

@@ -61,6 +61,7 @@ import com.tgzjdv.music.ui.components.LoadingBox
 import com.tgzjdv.music.ui.components.SongRow
 import com.tgzjdv.music.ui.components.TitleBadge
 import com.tgzjdv.music.ui.components.UserAvatar
+import com.tgzjdv.music.ui.components.bouncyClickable
 import com.tgzjdv.music.ui.components.glassPanel
 import com.tgzjdv.music.ui.theme.AppAccent
 import com.tgzjdv.music.ui.theme.AppMuted
@@ -160,7 +161,7 @@ fun MeScreen(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(modifier = Modifier.clickable { avatarPicker.launch("image/*") }) {
+                Box(modifier = Modifier.bouncyClickable { avatarPicker.launch("image/*") }) {
                     UserAvatar(user = user, size = 64.dp)
                 }
                 Spacer(Modifier.width(14.dp))
@@ -221,7 +222,7 @@ fun MeScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp)
                     .glassPanel(RoundedCornerShape(14.dp))
-                    .clickable { onEqualizer() }
+                    .bouncyClickable { onEqualizer() }
                     .padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -246,7 +247,7 @@ fun MeScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp)
                     .glassPanel(RoundedCornerShape(14.dp))
-                    .clickable { onSettings() }
+                    .bouncyClickable { onSettings() }
                     .padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -281,7 +282,7 @@ fun MeScreen(
                                 modifier = Modifier
                                     .padding(end = 10.dp)
                                     .glassPanel(RoundedCornerShape(12.dp))
-                                    .clickable { onOpenPlaylist(p.id) }
+                                    .bouncyClickable { onOpenPlaylist(p.id) }
                                     .padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
@@ -409,6 +410,6 @@ private fun TabText(text: String, active: Boolean, onClick: () -> Unit) {
         color = if (active) AppPrimary else AppMuted,
         style = MaterialTheme.typography.titleSmall,
         fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.clickable(onClick = onClick),
+        modifier = Modifier.bouncyClickable(onClick = onClick),
     )
 }
