@@ -1,4 +1,4 @@
-# 云音乐 · Cloudflare 全栈音乐网站
+# TGZJDV的音乐 · Cloudflare 全栈音乐网站
 
 一个部署在 Cloudflare 生态上的音乐分享网站：用户可以**邮箱验证码注册**、**忘记密码**、**上传头像**、上传音乐（含封面与 LRC 歌词）、创建播放列表、收藏、评论，并支持流式播放与歌词同步显示。
 
@@ -206,3 +206,6 @@ npm run build -- --mode production  # 或用环境变量
 - **上传大文件失败**：Workers 免费版请求体限制 100MB，如需更大请升级付费计划或改用 B2 预签名直传。
 - **前端 404**：确认 `VITE_API_URL` 填了完整地址且包含 `/api`。
 - **歌词不同步**：确认歌词为 LRC 格式（`[mm:ss.xx] 文本`），编码建议 UTF-8。
+
+## 八、许可证
+- 本项目使用MIT许可证，许可证地址：https://github.com/TGZJDV/website/LICENSE
