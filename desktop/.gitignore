@@ -1,0 +1,13 @@
+# .NET 构建产物
+bin/
+obj/
+publish/
+
+# 本地诊断日志
+_logs/
+*.log
+
+# 用户级配置（本地运行产生）
+session.json
+diag.log
+crash.log
