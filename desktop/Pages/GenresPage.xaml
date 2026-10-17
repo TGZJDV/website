@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Pages/GenresPage.xaml —— 分类页
+    控件：ItemsRepeater(分类胶囊，流式布局) + ListView(歌曲列表) + InfoBar
+    胶囊用 ItemsRepeater + UniformGridLayout，替代旧版手写 WrapPanel。
+-->
+<local:PageBase
+    x:Class="FamousMusic.Desktop.Pages.GenresPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="using:FamousMusic.Desktop.Pages"
+    mc:Ignorable="d">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="28,24,28,18" Spacing="16">
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="分类" Style="{StaticResource PageTitleTextStyle}" />
+                <TextBlock Text="按曲风浏览全部歌曲" Style="{StaticResource PageSubtitleTextStyle}" />
+            </StackPanel>
+
+            <InfoBar x:Name="Info" IsOpen="False" IsClosable="True" />
+
+            <!-- 分类胶囊：流式自动换行 -->
+            <muxc:ItemsRepeater x:Name="GenresRepeater"
+                                ItemTemplate="{StaticResource GenreChipTemplate}">
+                <muxc:ItemsRepeater.Layout>
+                    <muxc:UniformGridLayout MinItemWidth="96"
+                                            MinItemHeight="34"
+                                            MinRowSpacing="0"
+                                            MinColumnSpacing="0"
+                                            ItemsStretch="None" />
+                </muxc:ItemsRepeater.Layout>
+            </muxc:ItemsRepeater>
+
+            <TextBlock x:Name="StatusText" Style="{StaticResource StatusTextStyle}" />
+
+            <StackPanel x:Name="LoadingPanel" Orientation="Horizontal" Spacing="10"
+                        HorizontalAlignment="Center" Margin="0,24,0,24" Visibility="Collapsed">
+                <ProgressRing IsActive="True" Width="18" Height="18"
+                              Foreground="{StaticResource AppPrimaryBrush}" />
+                <TextBlock Text="加载中…" FontSize="12.5" Foreground="{StaticResource AppMutedBrush}" />
+            </StackPanel>
+
+            <ListView x:Name="SongsList"
+                      ItemTemplate="{StaticResource SongRowTemplate}"
+                      ItemContainerStyle="{StaticResource SongListViewItemStyle}"
+                      SelectionMode="None"
+                      IsItemClickEnabled="False"
+                      Padding="0"
+                      Background="Transparent" />
+        </StackPanel>
+    </ScrollViewer>
+</local:PageBase>

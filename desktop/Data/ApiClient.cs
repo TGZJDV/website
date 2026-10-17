@@ -152,6 +152,25 @@ public sealed class ApiClient
     public Task<AuthResponse> LoginAsync(string email, string password) =>
         SendJsonAsync<LoginRequest, AuthResponse>(HttpMethod.Post, "/auth/login", new LoginRequest { Email = email, Password = password });
 
+    /// <summary>需求验证码。purpose 只接受 "register" / "reset"（后端 zod enum 校验）</summary>
+    public Task<OkResponse> SendCodeAsync(string email, string purpose) =>
+        SendJsonAsync<SendCodeRequest, OkResponse>(HttpMethod.Post, "/auth/send-code",
+            new SendCodeRequest { Email = email, Purpose = purpose });
+
+    /// <summary>注册（需要先 SendCodeAsync(email, "register")）。成功后返回 token + user</summary>
+    public Task<AuthResponse> RegisterAsync(string email, string username, string password, string code) =>
+        SendJsonAsync<RegisterRequest, AuthResponse>(HttpMethod.Post, "/auth/register",
+            new RegisterRequest { Email = email, Username = username, Password = password, Code = code });
+
+    /// <summary>忘记密码：给邮箱发重置验证码</summary>
+    public Task<OkResponse> ForgotAsync(string email) =>
+        SendJsonAsync<SendCodeRequest, OkResponse>(HttpMethod.Post, "/auth/forgot",
+            new SendCodeRequest { Email = email, Purpose = "reset" });
+
+    public Task<OkResponse> ResetPasswordAsync(string email, string code, string newPassword) =>
+        SendJsonAsync<ResetPasswordRequest, OkResponse>(HttpMethod.Post, "/auth/reset-password",
+            new ResetPasswordRequest { Email = email, Code = code, NewPassword = newPassword });
+
     public Task<MeResponse> MeAsync() => GetAsync<MeResponse>("/auth/me");
 
     // ---------- 歌曲 ----------
@@ -209,6 +228,64 @@ public sealed class ApiClient
         return JsonSerializer.Deserialize<FavoriteResponse>(text, JsonOpts) ?? new FavoriteResponse();
     }
 
+    // ---------- 上传（OSS 预签名直传） ----------
+
+    /// <summary>申请预签名 PUT 地址。后端返回 audioUrl/coverUrl/lyricsUrl 与对应 key。</summary>
+    public Task<PresignResponse> PresignAsync(PresignRequest req) =>
+        SendJsonAsync<PresignRequest, PresignResponse>(HttpMethod.Post, "/songs/presign", req);
+
+    /// <summary>
+    /// 把字节直接 PUT 到 OSS 预签名 URL。
+    /// **绝对不能带 Authorization 头**：预签名 URL 自带签名，混入 JWT 会被 OSS 判为签名不匹配而 403。
+    /// Content-Type 必须与写入时一致（这里只发 content-type 一个头，签名只覆盖 host）。
+    /// </summary>
+    public static async Task UploadToPresignedAsync(string url, byte[] bytes, string mimeType)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Put, url)
+        {
+            Content = new ByteArrayContent(bytes),
+        };
+        req.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mimeType);
+
+        HttpResponseMessage res;
+        try
+        {
+            res = await Http.SendAsync(req);
+        }
+        catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException || ex is IOException)
+        {
+            throw new ApiException("上传到存储失败，请检查网络后重试", 0);
+        }
+
+        using (res)
+        {
+            if (!res.IsSuccessStatusCode)
+            {
+                var body = await res.Content.ReadAsStringAsync();
+                if (body.Length > 300) body = body[..300];
+                throw new ApiException($"上传到存储失败({(int)res.StatusCode})", (int)res.StatusCode);
+            }
+        }
+    }
+
+    /// <summary>上传完成后登记歌曲到数据库，返回新歌曲 id</summary>
+    public Task<CompleteResponse> CompleteAsync(CompleteRequest req) =>
+        SendJsonAsync<CompleteRequest, CompleteResponse>(HttpMethod.Post, "/songs/complete", req);
+
+    // ---------- 评论 ----------
+
+    public Task<CommentListResponse> CommentsAsync(int songId) =>
+        GetAsync<CommentListResponse>($"/comments/song/{songId}");
+
+    public Task<CommentCreateResponse> CreateCommentAsync(int songId, string content) =>
+        SendJsonAsync<CreateCommentRequest, CommentCreateResponse>(HttpMethod.Post, "/comments",
+            new CreateCommentRequest { SongId = songId, Content = content });
+
+    public async Task DeleteCommentAsync(int commentId)
+    {
+        await SendAsync(HttpMethod.Delete, $"/comments/{commentId}");
+    }
+
     // ---------- 歌单 ----------
 
     public Task<PlaylistListResponse> MyPlaylistsAsync() => GetAsync<PlaylistListResponse>("/playlists/mine");
@@ -221,5 +298,16 @@ public sealed class ApiClient
     public async Task DeletePlaylistAsync(int id)
     {
         await SendAsync(HttpMethod.Delete, $"/playlists/{id}");
+    }
+
+    /// <summary>把歌曲加入歌单（后端只允许操作自己的歌单）</summary>
+    public Task<OkResponse> AddSongToPlaylistAsync(int playlistId, int songId) =>
+        SendJsonAsync<AddSongRequest, OkResponse>(HttpMethod.Post, $"/playlists/{playlistId}/songs",
+            new AddSongRequest { SongId = songId });
+
+    public async Task<OkResponse> RemoveSongFromPlaylistAsync(int playlistId, int songId)
+    {
+        var text = await SendAsync(HttpMethod.Delete, $"/playlists/{playlistId}/songs/{songId}");
+        return JsonSerializer.Deserialize<OkResponse>(text, JsonOpts) ?? new OkResponse();
     }
 }

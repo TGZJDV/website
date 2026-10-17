@@ -166,13 +166,32 @@ desktop/
    `WindowsAppSDKSelfContained requires a supported Windows architecture.`
    需要 `<PlatformTarget>x64</PlatformTarget>` + `<RuntimeIdentifier>win-x64</RuntimeIdentifier>`。
 
-4. **XamlCompiler 会静默崩溃**：如果 `_logs/` 之类的子目录里放了 .xaml 草稿文件，
-   会被 SDK 默认 glob 当成 `Page`（XamlPage）收进去，XamlCompiler.exe 直接 exit 1，
-   且不给任何错误信息（`output.json` 里也是空的）。csproj 里用
-   `<Page Remove="_logs\**" />` 排掉。
+4. **XamlCompiler 会静默崩溃（现已定位真因）**：XamlCompiler.exe 直接 exit 1，
+   且不给任何错误信息（`output.json` 里也只有 perf marker、无 ErrorCode）。
+   两个触发源，按概率排序：
 
-5. **主界面用纯 C# 构建**：`MainWindow.xaml.cs` 里没有任何 DataTemplate / x:Name 依赖，
-   避开了 XAML 编译器在这个环境下的问题，也让动态列表（歌曲卡片/歌曲行）更好写。
+   a) **XAML 里有非法 XML 注释**（最常见，且完全静默）。XML 规范禁止注释体出现 `--`，
+      例如 `<!-- ---- 左：当前曲目 ---- -->` 就是非法的。XamlCompiler 对此不报错、只 exit 1。
+      **排查第一步永远是 XML 良构性检查**，比翻 output.json 有效得多：
+      ```powershell
+      Get-ChildItem -Recurse -Include *.xaml | ? { $_.FullName -notmatch '\\(bin|obj)\\' } | % {
+        try { [xml]$x = Get-Content $_.FullName -Raw; "OK $($_.Name)" }
+        catch { "INVALID $($_.Name): $($_.Exception.Message)" } }
+      ```
+   b) `_logs/` 等子目录里的 .xaml 草稿会被 SDK 默认 glob 收进编译，csproj 里用
+      `<Page Remove="_logs\**" />` 排掉（已保留）。
+
+5. **UI 是声明式 XAML**：`MainWindow.xaml` + `Pages/*.xaml`（每页一个 UserControl）+
+   `Styles/Theme.xaml`（调色板/字体/按钮样式）+ `Styles/Templates.xaml`（共享 DataTemplate）。
+   code-behind 只写事件与数据填充，不再手工 new 控件。
+
+   注意两个 WinUI 细节：
+   - 页面 code-behind 继承 `PageBase : UserControl`，所以 XAML 根元素必须写
+     `<local:PageBase xmlns:local="using:FamousMusic.Desktop.Pages">`，
+     写 `<UserControl>` 会因**分部类基类不一致**报 CS0263。
+   - `Application.RequestedTheme` **不能在 `OnLaunched` 里赋值**（抛 COMException 0x80131515），
+     深色主题要写在 `App.xaml` 的 `RequestedTheme="Dark"` 属性上。
+   - `AutoSuggestBox` 会自己消费 Enter，回车搜索要挂 `QuerySubmitted`，挂 `KeyDown` 收不到。
 
 6. **API 字段名全部照抄 Kotlin**：`cover_key` / `audio_key` / `lyrics_key` / `uploader_id` /
    `uploader_name` / `created_at` / `avatar_key` / `is_admin` 等，用 `[JsonPropertyName]` 显式映射。

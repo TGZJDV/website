@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Styles/Templates.xaml —— 共享 DataTemplate（歌曲卡片 / 歌曲行 / 分类胶囊 / 歌单行）
+    ============================================================================
+    这些模板被多个页面复用，因此放在资源字典里；由 App.xaml 合并。
+
+    设计要点：
+    * 模板只用普通 {Binding}（不用 x:Bind），因为资源字典里的 DataTemplate
+      没有 code-behind 宿主，无法编译 x:Bind，也不允许挂事件处理器。
+    * 交互一律通过 ViewModel 上的 ICommand（PlayCommand / SelectCommand），
+      所以模板是纯声明式的，事件处理逻辑留在各页面的 code-behind。
+    * 模板的 DataType 见 Pages/ViewModels.cs：
+        SongCardTemplate   <- SongCardVm
+        SongRowTemplate    <- SongRowVm
+        GenreChipTemplate  <- GenreChipVm
+        PlaylistRowTemplate<- PlaylistRowVm
+-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ================= 封面（封面图 or 占位渐变） ================= -->
+    <!-- 两层叠放：底层渐变 + 音符图标，上层 ImageBrush；无封面时上层为空 -->
+    <DataTemplate x:Key="CoverSquareTemplate">
+        <Grid Width="152" Height="152">
+            <Border CornerRadius="10" Background="{StaticResource CoverFallbackBrush}">
+                <FontIcon Glyph="&#xE8D6;" FontSize="42"
+                          Foreground="{StaticResource AppIconOverlayBrush}"
+                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <Border CornerRadius="10" Background="{Binding CoverBrush}" />
+        </Grid>
+    </DataTemplate>
+
+    <!-- ================= 发现页：歌曲卡片 ================= -->
+    <DataTemplate x:Key="SongCardTemplate">
+        <Button Style="{StaticResource MusicCardButtonStyle}"
+                Command="{Binding PlayCommand}"
+                ToolTipService.ToolTip="播放">
+            <StackPanel Width="152" Spacing="6">
+                <Grid Width="152" Height="152">
+                    <Border CornerRadius="10" Background="{StaticResource CoverFallbackBrush}">
+                        <FontIcon Glyph="&#xE8D6;" FontSize="42"
+                                  Foreground="{StaticResource AppIconOverlayBrush}"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <Border CornerRadius="10" Background="{Binding CoverBrush}" />
+                    <FontIcon Glyph="&#xE768;" FontSize="18" Foreground="White"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                              Visibility="{Binding PlayGlyphVisibility}" />
+                </Grid>
+                <TextBlock Text="{Binding Title}" Style="{StaticResource ItemTitleTextStyle}" FontSize="13" />
+                <TextBlock Text="{Binding Artist}" Style="{StaticResource ItemSubtitleTextStyle}" />
+            </StackPanel>
+        </Button>
+    </DataTemplate>
+
+    <!-- ================= 歌曲行（搜索 / 分类 / 歌单 / 收藏 共用） ================= -->
+    <DataTemplate x:Key="SongRowTemplate">
+        <Button Style="{StaticResource RowButtonStyle}"
+                Command="{Binding PlayCommand}"
+                ToolTipService.ToolTip="播放">
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="28" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="56" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="{Binding IndexText}"
+                           FontSize="12.5" Foreground="{StaticResource AppMutedBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+                <Grid Grid.Column="1" Width="42" Height="42">
+                    <Border CornerRadius="6" Background="{StaticResource CoverFallbackBrush}">
+                        <FontIcon Glyph="&#xE8D6;" FontSize="14"
+                                  Foreground="{StaticResource AppIconOverlayBrush}"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <Border CornerRadius="6" Background="{Binding CoverBrush}" />
+                </Grid>
+
+                <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="1">
+                    <TextBlock Text="{Binding Title}" Style="{StaticResource ItemTitleTextStyle}" />
+                    <TextBlock Text="{Binding Subtitle}" Style="{StaticResource ItemSubtitleTextStyle}" />
+                </StackPanel>
+
+                <TextBlock Grid.Column="3" Text="{Binding DurationText}"
+                           FontSize="12" Foreground="{StaticResource AppMutedBrush}"
+                           HorizontalAlignment="Right" VerticalAlignment="Center" />
+
+                <FontIcon Grid.Column="4" Glyph="&#xE768;" FontSize="14"
+                          Foreground="{StaticResource AppPrimaryBrush}"
+                          VerticalAlignment="Center" />
+            </Grid>
+        </Button>
+    </DataTemplate>
+
+    <!-- ================= 分类胶囊 ================= -->
+    <DataTemplate x:Key="GenreChipTemplate">
+        <Button Style="{StaticResource GenreChipButtonStyle}"
+                Command="{Binding SelectCommand}"
+                Background="{Binding ChipBackground}"
+                Foreground="{Binding ChipForeground}"
+                Content="{Binding Text}" />
+    </DataTemplate>
+
+    <!-- ================= 歌单行 ================= -->
+    <DataTemplate x:Key="PlaylistRowTemplate">
+        <Button Style="{StaticResource RowButtonStyle}" Command="{Binding OpenCommand}">
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Width="46" Height="46" CornerRadius="8"
+                        Background="{StaticResource CoverFallbackBrush}">
+                    <FontIcon Glyph="&#xE8FD;" FontSize="18"
+                              Foreground="{StaticResource AppMutedBrush}"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                    <TextBlock Text="{Binding Name}" Style="{StaticResource ItemTitleTextStyle}" />
+                    <TextBlock Text="{Binding InfoText}" Style="{StaticResource ItemSubtitleTextStyle}" />
+                </StackPanel>
+
+                <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="14"
+                          Foreground="{StaticResource AppMutedBrush}"
+                          VerticalAlignment="Center" />
+            </Grid>
+        </Button>
+    </DataTemplate>
+
+</ResourceDictionary>

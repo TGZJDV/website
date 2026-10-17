@@ -1,13 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    App.xaml —— 应用级资源
+    ============================================================================
+    MergedDictionaries 顺序很重要：
+      1. XamlControlsResources  —— WinUI 基础控件样式（必须先加载）
+      2. Styles/Theme.xaml      —— 本项目调色板 / 字体 / 按钮样式
+      3. Styles/Templates.xaml  —— 共享 DataTemplate（歌曲卡片、歌曲行、胶囊…）
+    后两个依赖第 1 个（Theme 里 BasedOn 了 DefaultListViewItemStyle 等）。
+-->
 <Application
     x:Class="FamousMusic.Desktop.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:FamousMusic.Desktop">
+    xmlns:local="using:FamousMusic.Desktop"
+    RequestedTheme="Dark">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <ResourceDictionary Source="ms-appx:///Styles/Theme.xaml" />
+                <ResourceDictionary Source="ms-appx:///Styles/Templates.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

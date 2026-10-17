@@ -11,3 +11,6 @@ _logs/
 session.json
 diag.log
 crash.log
+
+# 安装包输出目录
+Output/

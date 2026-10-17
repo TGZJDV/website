@@ -1,12 +1,15 @@
 using FamousMusic.Desktop.Services;
-using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 
 namespace FamousMusic.Desktop.Pages;
 
-/// <summary>所有页面的基类：持有宿主窗口引用与一组通用小工具</summary>
-public abstract class PageBase : UserControl
+/// <summary>
+/// 所有页面的基类：持有宿主窗口引用与一组通用小工具。
+/// 注意：XAML 的根元素写的是 <c>&lt;local:PageBase&gt;</c>，
+/// 这样 XamlCompiler 生成的基类与 code-behind 声明的基类一致（否则报 CS0263）。
+/// 因此本类不能是 abstract —— XAML 需要能构造根元素。
+/// </summary>
+public class PageBase : UserControl
 {
     /// <summary>宿主窗口，用于跳转和刷新用户信息</summary>
     public MainWindow Host { get; set; } = null!;
@@ -15,9 +18,10 @@ public abstract class PageBase : UserControl
 
     protected Session Session => Session.Current;
 
-    protected static readonly int DefaultPageSize = 50;
+    /// <summary>页面被导航进入时调用（首次与后续每次进入都会调用）</summary>
+    public virtual void OnNavigatedTo() { }
 
-    /// <summary>显示一条错误信息（InfoBar 由页面 XAML 提供，可为 null）</summary>
+    /// <summary>显示一条错误信息</summary>
     protected static void ShowError(InfoBar? bar, string message)
     {
         if (bar == null) return;
@@ -46,4 +50,8 @@ public abstract class PageBase : UserControl
     /// <summary>统一处理异步加载错误的文案</summary>
     protected static string DescribeError(Exception ex) =>
         ex is Data.ApiException api ? api.Message : "加载失败：" + ex.Message;
+
+    /// <summary>取主题资源（页面 XAML 引用不到的动态画笔，在 code-behind 里用这个）</summary>
+    protected static T Res<T>(string key) where T : class =>
+        (T)Microsoft.UI.Xaml.Application.Current.Resources[key];
 }

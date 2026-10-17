@@ -59,11 +59,27 @@
     <AppxMSBuildToolsPath Condition="'$(AppxMSBuildToolsPath)' == '' AND Exists('$(_VsAppxProbePath)\Microsoft.Build.Packaging.Pri.Tasks.dll')">$(_VsAppxProbePath)\</AppxMSBuildToolsPath>
   </PropertyGroup>
 
-  <!-- 见文件头注释 (3)：把 _logs 等草稿目录挡在 XAML/编译 glob 之外 -->
+  <!-- 见文件头注释 (3)：把 _logs 等草稿目录挡在 XAML/编译 glob 之外。
+       坑：XamlCompiler 对这些文件是**静默失败**（exit 1、零错误信息），
+       所以除了 Remove，还必须保证 _logs/ 下不残留任何 .xaml 草稿。 -->
   <ItemGroup>
     <Page Remove="_logs\**" />
     <None Remove="_logs\**" />
     <Compile Remove="_logs\**" />
+  </ItemGroup>
+
+  <!--
+    XAML 资源字典显式声明为 Page。
+    Styles/*.xaml 会被默认 glob 收成 Page（放在 RootNamespace 下），
+    这里显式写出来只是为了在文件里可见、避免以后加 Loader 属性时被当成 None。
+  -->
+  <ItemGroup>
+    <Page Update="Styles\Theme.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Styles\Templates.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
 
   <ItemGroup>
