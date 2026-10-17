@@ -61,15 +61,27 @@ fun SearchScreen(onSongDetail: (Int) -> Unit) {
         val kw = keyword.trim()
         scope.launch {
             if (kw.isEmpty()) {
+                // 「全部歌曲」：不能用单页（后端 limit 上限 50，只取一页就只显示 50 首），
+                // 必须自动翻页取完，否则列表永远只有第一页
                 loading = true
-                runCatching { ApiClient.listSongs(limit = 20) }
+                runCatching {
+                    ApiClient.listAllSongs { pageSongs, totalCount ->
+                        songs = pageSongs
+                        total = totalCount
+                    }
+                }
                     .onSuccess { songs = it.songs; total = it.total; searched = false; error = null }
                     .onFailure { error = it.message }
                 loading = false
                 return@launch
             }
             loading = true
-            runCatching { ApiClient.listSongs(q = kw, limit = 50) }
+            runCatching {
+                ApiClient.listAllSongs(q = kw) { pageSongs, totalCount ->
+                    songs = pageSongs
+                    total = totalCount
+                }
+            }
                 .onSuccess { songs = it.songs; total = it.total; error = null }
                 .onFailure { songs = emptyList(); error = it.message }
             searched = true

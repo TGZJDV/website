@@ -215,6 +215,41 @@ object ApiClient {
     suspend fun listSongs(q: String? = null, genre: String? = null, page: Int = 1, limit: Int = 20): SongListResponse =
         getDecoded(songsPath(q, genre, page, limit), SongListResponse.serializer())
 
+    /**
+     * 拉取**全部**歌曲（自动翻页）。
+     *
+     * 后端 `/songs` 的 limit 上限被夹在 50（`Math.min(50, ...)`），所以一次请求最多 50 首；
+     * 只取第一页就会出现「全部歌曲只显示 20/50 首」。这里按 page 逐页取完为止。
+     *
+     * @param onProgress 每页回来时回调 (已累计条数, 总数)，用于边加载边刷新列表
+     */
+    suspend fun listAllSongs(
+        q: String? = null,
+        genre: String? = null,
+        pageSize: Int = 50,
+        onProgress: ((songs: List<Song>, total: Int) -> Unit)? = null,
+    ): SongListResponse = withContext(Dispatchers.IO) {
+        val collected = mutableListOf<Song>()
+        var page = 1
+        var total = 0
+        while (true) {
+            val res = listSongs(q = q, genre = genre, page = page, limit = pageSize)
+            total = res.total
+            if (res.songs.isEmpty()) break
+            collected += res.songs
+            onProgress?.let { cb ->
+                withContext(Dispatchers.Main) { cb(collected.toList(), total) }
+            }
+            // 取够了 / 没有更多了
+            if (collected.size >= total) break
+            if (res.songs.size < pageSize) break
+            page++
+            // 保险：避免后端 total 异常导致无限翻页
+            if (page > 200) break
+        }
+        SongListResponse(songs = collected, total = total)
+    }
+
     // ---------- 首屏秒出：同步读缓存（可能为 null，为 null 时照常走网络） ----------
 
     private fun <T> cacheDecode(path: String, d: DeserializationStrategy<T>): T? =

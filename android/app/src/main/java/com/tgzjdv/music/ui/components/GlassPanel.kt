@@ -107,6 +107,13 @@ fun Modifier.glassPanel(
  * 比 Material 的涟漪更贴合液态玻璃的手感 —— 玻璃是"软"的。
  *
  * 用法：接在 [glassPanel] / [glassCircle] **之后**，整块玻璃（含折射层）一起缩放。
+ *
+ * ⚠️ 触发条件必须严格，否则会误触：手指在列表上滑动时只是"路过"卡片，
+ * 之前这个实现只要松手就 onClick()，导致「划一下主页就开始播放某首歌」。
+ * 现在只有同时满足才触发：
+ *   ① 手指位移始终没超过 touchSlop（不是滑动）
+ *   ② 手势没有被 LazyColumn 等父级消费
+ *   ③ 在卡片范围内松手
  */
 @Composable
 fun Modifier.bouncyClickable(
@@ -125,26 +132,50 @@ fun Modifier.bouncyClickable(
         .pointerInput(enabled, pressedScale) {
             if (!enabled) return@pointerInput
             awaitEachGesture {
-                val down = awaitFirstDown(requireUnconsumed = false)
+                // requireUnconsumed = true：已经被父级吃掉的手势不再处理
+                val down = awaitFirstDown(requireUnconsumed = true)
+                val downPos = down.position
+                var cancelled = false
+                var consumedByParent = false
+
                 scope.launch {
                     scale.animateTo(
                         pressedScale,
                         spring(dampingRatio = 0.32f, stiffness = 900f),
                     )
                 }
-                // 等手指抬起
+
                 while (true) {
                     val event = awaitPointerEvent()
                     val change = event.changes.firstOrNull { it.id == down.id } ?: break
+
+                    // 父级（滚动容器）消费了 → 这是滑动，不是点击
+                    if (change.isConsumed) {
+                        consumedByParent = true
+                        break
+                    }
+                    // 位移超过 touchSlop → 判定为滑动，取消点击
+                    if (!cancelled &&
+                        (change.position - downPos).getDistance() > viewConfiguration.touchSlop
+                    ) {
+                        cancelled = true
+                        break
+                    }
                     if (!change.pressed) break
                 }
+
+                // 回弹
                 scope.launch {
                     scale.animateTo(
                         1f,
                         spring(dampingRatio = 0.30f, stiffness = 420f),
                     )
                 }
-                onClick()
+
+                // 只有"没滑动、没被父级消费"才真正算一次点击
+                if (!cancelled && !consumedByParent) {
+                    onClick()
+                }
             }
         }
 }

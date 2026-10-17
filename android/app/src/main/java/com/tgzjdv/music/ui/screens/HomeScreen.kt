@@ -218,7 +218,9 @@ fun SongGridCard(song: Song, onPlay: () -> Unit, onDetail: () -> Unit) {
     Column(
         modifier = Modifier
             .glassPanel(RoundedCornerShape(12.dp))
-            .bouncyClickable(onClick = onPlay)
+            // ⚠️ 整卡点击 = 打开详情，**不能**绑播放。
+            // 之前整卡绑的是 onPlay，导致手指在卡片上划动列表时一松手就开始播放（误触）。
+            .bouncyClickable(onClick = onDetail)
             .padding(8.dp),
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
