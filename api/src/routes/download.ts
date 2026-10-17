@@ -40,6 +40,10 @@ interface Release {
   file?: string;
   /** 安装包 SHA-256（供用户校验） */
   sha256?: string;
+  /** 多卷分发的其余文件（第 1 卷放在 file，这里放剩下几卷） */
+  extraFiles?: string[];
+  /** 额外的安装说明（多卷解压、安装步骤等） */
+  installNote?: string;
   /** 不可下载时的说明文案 */
   note?: string;
 }
@@ -62,9 +66,19 @@ const RELEASES: Release[] = [
   {
     id: 'windows',
     name: 'Windows',
-    subtitle: '桌面客户端',
-    available: false,
-    note: '开发中',
+    subtitle: '桌面客户端 · WinUI 3 + .NET 8',
+    available: true,
+    version: '1.1.1',
+    versionCode: 1,
+    // 两卷合计大小
+    size: 32313076,
+    minOs: 'Windows 10 1809 (x64) 及以上',
+    publishedAt: '2026-10-18',
+    file: 'FamousMusic-1.1.1-win-x64-part1.zip',
+    extraFiles: ['FamousMusic-1.1.1-win-x64-part2.zip'],
+    sha256: 'f027973f4fef4f2b418ef5158bf05e66c3ddc1669dc228d98f1f36fcd3d43840',
+    installNote:
+      '分两卷下载：两个 zip 都下载后，把 part2 里的文件解压到 part1 解压出的同一目录（覆盖合并），再双击 FamousMusic.exe。已内置 Windows App SDK 运行时，无需另外安装。',
   },
   {
     id: 'ios',
@@ -99,6 +113,8 @@ downloadRoutes.get('/releases', (c) => {
       note: r.note ?? null,
       // 安装包文件名（前端拼成同源 /downloads/<file>）
       file: r.available ? (r.file ?? null) : null,
+      extraFiles: r.available ? (r.extraFiles ?? []) : [],
+      installNote: r.installNote ?? null,
     })),
   });
 });

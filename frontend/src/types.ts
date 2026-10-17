@@ -87,4 +87,8 @@ export interface ClientRelease {
   note: string | null;
   /** 安装包文件名（前端拼成 /downloads/<file>），available=false 时为 null */
   file: string | null;
+  /** 多卷分发的其余文件（第 1 卷在 file） */
+  extraFiles?: string[];
+  /** 额外安装说明（多卷解压等） */
+  installNote?: string | null;
 }

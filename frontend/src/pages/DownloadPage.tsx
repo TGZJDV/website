@@ -139,7 +139,27 @@ function ReleaseCard({ release }: { release: ClientRelease }) {
             href={release.file ? downloadFileUrl(release.file) : '#'}
           >
             下载 {release.name} 版
+            {release.extraFiles && release.extraFiles.length > 0 ? '（第 1 卷）' : ''}
           </a>
+
+          {/* 多卷分发：其余分卷也给下载链接 + 解压说明 */}
+          {release.extraFiles && release.extraFiles.length > 0 && (
+            <div className="mt-2 flex flex-col gap-2">
+              {release.extraFiles.map((f, i) => (
+                <a
+                  key={f}
+                  className="rounded-lg border border-surface3 py-2 text-center text-sm transition hover:border-primary hover:text-primary"
+                  href={downloadFileUrl(f)}
+                >
+                  下载第 {i + 2} 卷
+                </a>
+              ))}
+              <p className="rounded-lg bg-surface2 px-3 py-2 text-xs text-muted">
+                {release.installNote ||
+                  '把所有分卷都下载后解压到同一个目录（覆盖合并），再运行主程序。'}
+              </p>
+            </div>
+          )}
         </>
       ) : (
         <p className="mt-4 text-sm text-muted">
